@@ -1,764 +1,519 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FX Position & Equity Simulator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    input[type=range] { accent-color: #3b82f6; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    th.sortable { cursor: pointer; user-select: none; }
-    th.sortable:hover { background-color: rgba(51, 65, 85, 0.8); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX期待値シミュレーター</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sort-header:hover {
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 selection:bg-blue-500 selection:text-white">
-  <div class="max-w-7xl mx-auto px-4 py-6">
-    <header class="mb-6 border-b border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 flex items-center gap-2">
-          <i class="fa-solid font-bold fa-chart-line text-blue-400"></i> FX Equity & Risk Simulator
-        </h1>
-        <p class="text-xs text-slate-400 mt-1">リスク管理・バルサラの破産確率・モンテカルロ試行 インタラクティブシミュレーター</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-900/60 text-blue-300 border border-blue-700/50 shadow-sm">
-          <i class="fa-solid fa-sliders text-xs"></i> Interactive Pro Edition
-        </span>
-      </div>
+
+<body class="min-h-screen pb-12">
+    <!-- Header -->
+    <header class="border-b border-slate-800 glass-panel sticky top-0 z-50 px-6 py-4 mb-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">📈</span>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                    FX期待値シミュレーター
+                </h1>
+            </div>
+            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v2.1</span>
+        </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-4 bg-slate-800/80 backdrop-blur rounded-xl p-5 border border-slate-700/60 shadow-xl space-y-4">
-        <h2 class="text-base font-semibold text-slate-200 border-b border-slate-700/80 pb-2.5 flex items-center justify-between">
-          <span class="flex items-center gap-2"><i class="fa-solid fa-gear text-blue-400"></i> シミュレーション設定</span>
-          <button id="reset-params" type="button" class="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1.5 active:scale-95 px-2.5 py-1 bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600/50">
-            <i class="fa-solid fa-rotate-left"></i> ↺ リセット
-          </button>
-        </h2>
+    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Control Panel (Left Column) -->
+        <div class="lg:col-span-4 space-y-6">
+            <section class="glass-panel p-6 rounded-2xl space-y-5">
+                <h2 class="text-lg font-semibold text-slate-200 border-b border-slate-700 pb-2 flex items-center justify-between">
+                    <span>⚙️ シミュレーション設定</span>
+                    <button id="btnReset" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-md border border-slate-600 transition">
+                        ↺ リセット
+                    </button>
+                </h2>
 
-        <!-- 初期資金 -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="init-balance" class="text-slate-300">初期資金</label>
-            <span class="text-blue-400 font-bold font-mono" id="val-init-balance">1,000,000 円</span>
-          </div>
-          <input type="number" id="init-balance" value="1000000" step="50000" min="10000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-slate-200 focus:outline-none focus:border-blue-500 transition-colors">
+                <!-- Capital Inputs -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">初期口座資金 (円)</label>
+                        <input type="number" id="initialCapital" value="1000000" step="100000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">1トレードリスク (%)</label>
+                        <input type="number" id="riskPercent" value="2.0" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Win Rate Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                        <span>勝率 (%)</span>
+                        <span id="winRateVal" class="text-blue-400 font-bold">60.0%</span>
+                    </div>
+                    <input type="range" id="winRate" min="10" max="90" value="60" step="0.5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                </div>
+
+                <!-- RRR Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                        <span>リスクリワード比 (RRR)</span>
+                        <span id="rrrVal" class="text-blue-400 font-bold">1.00</span>
+                    </div>
+                    <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                </div>
+
+                <!-- Bankruptcy Threshold Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                        <span>破産と判定する資金低下率 (%)</span>
+                        <span id="bankruptRateVal" class="text-rose-400 font-bold">50.0%</span>
+                    </div>
+                    <input type="range" id="bankruptRate" min="10" max="90" value="50" step="5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                    <p class="text-[11px] text-slate-500 mt-1">判定閾値: 残高 <span id="bankruptAmount" class="text-slate-400">500,000 円</span> 以下</p>
+                </div>
+
+                <!-- Trade Count Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                        <span>試行トレード数 (回)</span>
+                        <span id="tradeCountVal" class="text-blue-400 font-bold">500</span>
+                    </div>
+                    <input type="range" id="tradeCount" min="50" max="2000" value="500" step="50" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-2 pt-2">
+                    <button id="btnRunSingle" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center space-x-2">
+                        <span>▶ シミュレーション実行</span>
+                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnStep" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
+                            ⏭ 1トレード送り
+                        </button>
+                        <button id="btnAutoPlay" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
+                            ⏯ 自動再生
+                        </button>
+                    </div>
+
+                    <button id="btnRunMonte" class="w-full py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold rounded-xl text-xs transition">
+                        🎲 モンテカルロ試行 (10本)
+                    </button>
+                </div>
+            </section>
         </div>
 
-        <!-- 勝率 -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="win-rate" class="text-slate-300">想定勝率 (%)</label>
-            <span class="text-blue-400 font-bold font-mono" id="val-win-rate">60 %</span>
-          </div>
-          <input type="range" id="win-rate" min="10" max="90" value="60" step="1" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-        </div>
-
-        <!-- リスクリワード比 -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="rrr" class="text-slate-300">リスクリワード比 (RRR)</label>
-            <span class="text-blue-400 font-bold font-mono" id="val-rrr">1.00</span>
-          </div>
-          <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-        </div>
-
-        <!-- 1トレード許容リスク -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="risk-per-trade" class="text-slate-300">1トレードのリスク (%)</label>
-            <span class="text-blue-400 font-bold font-mono" id="val-risk-per-trade">2.0 %</span>
-          </div>
-          <input type="range" id="risk-per-trade" min="0.5" max="20" value="2.0" step="0.5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-        </div>
-
-        <!-- 破産と判定する資金低下率 (%) -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="ruin-threshold" class="text-slate-300">破産と判定する資金低下率 (%)</label>
-            <span class="text-rose-400 font-bold font-mono" id="val-ruin-threshold">50 %</span>
-          </div>
-          <input type="range" id="ruin-threshold" min="10" max="90" value="50" step="5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-          <p class="text-[11px] text-slate-400 mt-1" id="ruin-amount-desc">※ 資金が 500,000 円以下で破産判定</p>
-        </div>
-
-        <!-- 試行トレード回数 -->
-        <div>
-          <div class="flex justify-between text-sm font-medium mb-1">
-            <label for="total-trades" class="text-slate-300">試行トレード数</label>
-            <span class="text-blue-400 font-bold font-mono" id="val-total-trades">500 回</span>
-          </div>
-          <input type="range" id="total-trades" min="20" max="1000" value="500" step="10" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-        </div>
-
-        <!-- 計算方式 -->
-        <div>
-          <label class="text-xs font-medium text-slate-300 block mb-1.5">資金計算方式</label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center gap-1.5 p-2 rounded-lg bg-slate-900 border border-slate-700 cursor-pointer text-xs hover:border-slate-600 transition-colors">
-              <input type="radio" name="calc-mode" value="compound" checked class="text-blue-500">
-              <span>複利 (残高連動)</span>
-            </label>
-            <label class="flex items-center gap-1.5 p-2 rounded-lg bg-slate-900 border border-slate-700 cursor-pointer text-xs hover:border-slate-600 transition-colors">
-              <input type="radio" name="calc-mode" value="fixed" class="text-blue-500">
-              <span>単利 (初期額固定)</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 理論指標カード (バルサラ) -->
-        <div class="bg-slate-900/90 border border-slate-700/80 rounded-lg p-3 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-xs text-slate-400">設定理論PF:</span>
-            <span id="theory-pf" class="text-base font-bold font-mono text-emerald-400">1.50</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-xs text-slate-400">理論破産確率 (バルサラ):</span>
-            <span id="balsara-ruin-rate" class="text-xs font-bold font-mono text-slate-200">0.0 %</span>
-          </div>
-        </div>
-
-        <!-- アクションボタン -->
-        <div class="space-y-2 pt-1">
-          <button id="btn-run" type="button" class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-lg shadow-blue-600/30 transition-all text-sm flex items-center justify-center gap-2 active:scale-[0.99]">
-            <i class="fa-solid fa-play text-xs"></i> ▶ 通常シミュレーション実行
-          </button>
-          <button id="btn-montecarlo" type="button" class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-lg shadow-indigo-600/30 transition-all text-xs flex items-center justify-center gap-2 active:scale-[0.99]">
-            <i class="fa-solid fa-dice text-xs"></i> 🎲 モンテカルロ試行 (10本同時描画)
-          </button>
-        </div>
-      </div>
-
-      <div class="lg:col-span-8 space-y-5">
-        <!-- グラフエリア -->
-        <div class="bg-slate-800/80 backdrop-blur rounded-xl p-5 border border-slate-700/60 shadow-xl">
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-            <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-chart-area text-blue-400"></i> 資産推移曲線 (Equity Curve)
-            </h2>
-            <div class="flex items-center gap-2">
-              <button id="btn-step" type="button" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-xs font-medium rounded-lg text-slate-200 border border-slate-600 transition-all flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-forward-step text-xs"></i> コマ送り (+1)
-              </button>
-              <button id="btn-play" type="button" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-xs font-medium rounded-lg text-slate-100 border border-emerald-600 transition-all flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-play text-xs"></i> 自動再生 / 停止
-              </button>
+        <!-- Dashboard / Results (Right Column) -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-blue-500">
+                    <div class="text-xs text-slate-400">最終資産 / 損益</div>
+                    <div id="kpiFinalEquity" class="text-base font-bold text-slate-100 mt-1">1,000,000 円</div>
+                    <div id="kpiRoi" class="text-xs text-slate-400">±0.0%</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500">
+                    <div class="text-xs text-slate-400">実績勝率</div>
+                    <div id="kpiWinRate" class="text-base font-bold text-slate-100 mt-1">0.0%</div>
+                    <div id="kpiWinCount" class="text-xs text-slate-400">0勝 0敗</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500">
+                    <div class="text-xs text-slate-400">実績プロフィットファクター</div>
+                    <div id="kpiPF" class="text-base font-bold text-slate-100 mt-1">0.00</div>
+                    <div id="kpiTheoreticalPF" class="text-xs text-slate-400">理論値: 1.50</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-rose-500">
+                    <div class="text-xs text-slate-400">最大ドローダウン</div>
+                    <div id="kpiMaxDD" class="text-base font-bold text-slate-100 mt-1">0.0%</div>
+                    <div id="kpiMaxDDAmount" class="text-xs text-slate-400">0 円</div>
+                </div>
             </div>
-          </div>
-          <div class="relative w-full h-[320px]">
-            <canvas id="equityChart"></canvas>
-          </div>
+
+            <!-- Chart Panel -->
+            <div class="glass-panel p-6 rounded-2xl">
+                <h3 class="text-sm font-semibold text-slate-300 mb-4 flex justify-between items-center">
+                    <span>資産推移曲線 (Equity Curve)</span>
+                    <span id="tradeProgressText" class="text-xs text-slate-500">0 / 500 トレード</span>
+                </h3>
+                <div class="relative h-72 w-full">
+                    <canvas id="equityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monte Carlo Results Table -->
+            <div id="montePanel" class="glass-panel p-6 rounded-2xl hidden space-y-4">
+                <h3 class="text-sm font-semibold text-slate-300 flex items-center justify-between">
+                    <span>🎲 モンテカルロシミュレーション結果 (10試行)</span>
+                    <span class="text-xs font-normal text-slate-400">ヘッダー押下でソート可</span>
+                </h3>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800/80 uppercase text-slate-400 border-b border-slate-700">
+                            <tr>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('id')">試行 <span id="sort-id"></span></th>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('final')">最終残高 <span id="sort-final"></span></th>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('pnl')">損益額 / ROI <span id="sort-pnl"></span></th>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('winRate')">実績勝率 <span id="sort-winRate"></span></th>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('pf')">実績PF <span id="sort-pf"></span></th>
+                                <th class="p-2.5 sort-header" onclick="sortMonteTable('maxDD')">最大DD <span id="sort-maxDD"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="monteTableBody" class="divide-y divide-slate-800/50">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+    </main>
 
-        <!-- メトリクスカード -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 shadow-md">
-            <p class="text-xs text-slate-400 mb-1">最終資金 & 損益</p>
-            <p id="res-final-balance" class="text-base sm:text-lg font-bold font-mono text-emerald-400 truncate">-- 円</p>
-            <p id="res-roi" class="text-[11px] font-mono text-slate-300 mt-0.5">損益額: -- 円 (--%)</p>
-          </div>
+    <script>
+        // Chart & State Global Variables
+        let chart = null;
+        let singlePathData = [];
+        let montePathsData = [];
+        let currentStep = 0;
+        let autoPlayTimer = null;
+        let currentSort = { key: 'id', asc: true };
 
-          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 shadow-md">
-            <p class="text-xs text-slate-400 mb-1">実績勝率</p>
-            <p id="res-win-rate" class="text-base sm:text-lg font-bold font-mono text-blue-400">-- %</p>
-            <p id="res-win-count" class="text-[11px] text-slate-400 mt-0.5">-- 勝ち / -- 負け</p>
-          </div>
+        const colors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
+            '#06b6d4', '#f97316', '#84cc16', '#a855f7', '#64748b'
+        ];
 
-          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 shadow-md">
-            <p class="text-xs text-slate-400 mb-1">実績PF (プロフィットファクター)</p>
-            <p id="res-actual-pf" class="text-base sm:text-lg font-bold font-mono text-indigo-400">--</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">総利益 / 総損失</p>
-          </div>
+        // UI Element References
+        const inputs = {
+            initialCapital: document.getElementById('initialCapital'),
+            riskPercent: document.getElementById('riskPercent'),
+            winRate: document.getElementById('winRate'),
+            rrr: document.getElementById('rrr'),
+            bankruptRate: document.getElementById('bankruptRate'),
+            tradeCount: document.getElementById('tradeCount')
+        };
 
-          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 shadow-md">
-            <p class="text-xs text-slate-400 mb-1">最大DD / 連続記録</p>
-            <p id="res-max-dd" class="text-base sm:text-lg font-bold font-mono text-rose-400">-- %</p>
-            <p id="res-streak" class="text-[11px] text-slate-400 mt-0.5">--連勝 / --連敗</p>
-          </div>
-        </div>
+        const displays = {
+            winRateVal: document.getElementById('winRateVal'),
+            rrrVal: document.getElementById('rrrVal'),
+            bankruptRateVal: document.getElementById('bankruptRateVal'),
+            bankruptAmount: document.getElementById('bankruptAmount'),
+            tradeCountVal: document.getElementById('tradeCountVal')
+        };
 
-        <!-- モンテカルロ詳細パネル (ソート機能付) -->
-        <div id="montecarlo-panel" class="hidden bg-slate-800/80 rounded-xl p-4 border border-indigo-500/40 shadow-xl space-y-3">
-          <h3 class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-list-ol"></i> モンテカルロ 10試行 全詳細ブレイクダウン</span>
-            <span class="text-[11px] text-slate-400">※ 各カラム見出しをクリックで昇順/降順ソート可能</span>
-          </h3>
-          <div class="overflow-x-auto border border-slate-700/60 rounded-lg">
-            <table class="w-full text-xs text-left text-slate-300 font-mono">
-              <thead class="bg-slate-900/90 text-slate-400 border-b border-slate-700">
-                <tr>
-                  <th class="px-3 py-2 sortable" data-sort-key="pathIndex">試行 <span id="sort-icon-pathIndex" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="finalBal">最終残高 <span id="sort-icon-finalBal" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="diff">損益額 (円) / ROI (%) <span id="sort-icon-diff" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="actualWinRate">実績勝率 <span id="sort-icon-actualWinRate" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="actualPf">実績PF <span id="sort-icon-actualPf" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="maxDD">最大DD <span id="sort-icon-maxDD" class="text-[10px] text-slate-500">↕</span></th>
-                  <th class="px-3 py-2 sortable" data-sort-key="isRuin">破産到達 <span id="sort-icon-isRuin" class="text-[10px] text-slate-500">↕</span></th>
-                </tr>
-              </thead>
-              <tbody id="montecarlo-table-body" class="divide-y divide-slate-800">
-              </tbody>
-            </table>
-          </div>
-        </div>
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            bindEvents();
+            updateControlDisplays();
+        });
 
-        <!-- トレードログ -->
-        <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700/60 shadow-xl">
-          <h3 class="text-xs font-semibold text-slate-300 mb-2 flex justify-between items-center">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-list-check text-slate-400"></i> トレード履歴詳細</span>
-            <span id="trade-progress-badge" class="text-[11px] font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-700 text-slate-400">0 / 0</span>
-          </h3>
-          <div class="overflow-x-auto max-h-[180px] overflow-y-auto border border-slate-700/50 rounded-lg">
-            <table class="w-full text-xs text-left text-slate-300 font-mono">
-              <thead class="bg-slate-900/90 text-slate-400 sticky top-0 z-10 border-b border-slate-700">
-                <tr>
-                  <th class="px-3 py-1.5">#</th>
-                  <th class="px-3 py-1.5">勝敗</th>
-                  <th class="px-3 py-1.5">損益 (円)</th>
-                  <th class="px-3 py-1.5">口座残高 (円)</th>
-                  <th class="px-3 py-1.5">ドローダウン</th>
-                </tr>
-              </thead>
-              <tbody id="trade-log-body" class="divide-y divide-slate-800">
-                <tr>
-                  <td colspan="5" class="px-3 py-4 text-center text-slate-500 font-sans">「通常シミュレーション実行」を押してスタートしてください</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        function bindEvents() {
+            Object.keys(inputs).forEach(key => {
+                inputs[key].addEventListener('input', updateControlDisplays);
+            });
 
-  <script>
-    let chartInstance = null;
-    let fullHistory = [];
-    let currentStepIndex = 0;
-    let autoPlayInterval = null;
+            document.getElementById('btnRunSingle').addEventListener('click', runSingleSimulation);
+            document.getElementById('btnStep').addEventListener('click', stepForward);
+            document.getElementById('btnAutoPlay').addEventListener('click', toggleAutoPlay);
+            document.getElementById('btnRunMonte').addEventListener('click', runMonteCarlo);
+            document.getElementById('btnReset').addEventListener('click', resetAll);
+        }
 
-    let monteCarloResults = [];
-    let currentSortKey = 'pathIndex';
-    let currentSortAsc = true;
+        function updateControlDisplays() {
+            displays.winRateVal.innerText = `${parseFloat(inputs.winRate.value).toFixed(1)}%`;
+            displays.rrrVal.innerText = parseFloat(inputs.rrr.value).toFixed(2);
+            displays.bankruptRateVal.innerText = `${parseFloat(inputs.bankruptRate.value).toFixed(1)}%`;
+            displays.tradeCountVal.innerText = inputs.tradeCount.value;
 
-    const palette = [
-      '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
-      '#06b6d4', '#f97316', '#84cc16', '#a855f7', '#6366f1'
-    ];
+            const capital = parseFloat(inputs.initialCapital.value) || 0;
+            const bRate = parseFloat(inputs.bankruptRate.value) || 0;
+            const threshold = capital * (1 - bRate / 100);
+            displays.bankruptAmount.innerText = `${Math.round(threshold).toLocaleString()} 円`;
+        }
 
-    function formatJPY(val) {
-      return Math.round(val).toLocaleString('ja-JP') + ' 円';
-    }
+        function initChart() {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
 
-    function formatSignedJPY(val) {
-      const formatted = Math.abs(Math.round(val)).toLocaleString('ja-JP') + ' 円';
-      return val >= 0 ? `+${formatted}` : `-${formatted}`;
-    }
+        // Generate Random Trade
+        function generateTradePath(capital, riskPct, winRatePct, rrr, count) {
+            let equity = capital;
+            const path = [equity];
+            let wins = 0;
+            let totalWinAmount = 0;
+            let totalLossAmount = 0;
+            let peak = equity;
+            let maxDD = 0;
 
-    function calculateBalsara(p, rrr, risk, ruinLevel) {
-      if (p * rrr <= (1 - p)) return 1.0;
-      if (p >= 1.0) return 0.0;
-      const b = (1 - p) / (p * rrr);
-      const unitsToRuin = Math.max(1, Math.floor(ruinLevel / risk));
-      return Math.min(1.0, Math.max(0.0, Math.pow(b, unitsToRuin)));
-    }
+            for (let i = 0; i < count; i++) {
+                const riskAmount = equity * (riskPct / 100);
+                const isWin = Math.random() < (winRatePct / 100);
 
-    function updateUIInputs() {
-      const initBal = parseFloat(document.getElementById('init-balance').value) || 1000000;
-      const winRate = parseFloat(document.getElementById('win-rate').value);
-      const rrrVal = parseFloat(document.getElementById('rrr').value);
-      const riskPct = parseFloat(document.getElementById('risk-per-trade').value);
-      const ruinPct = parseFloat(document.getElementById('ruin-threshold').value);
-      const totalTrades = parseInt(document.getElementById('total-trades').value);
+                if (isWin) {
+                    const winAmt = riskAmount * rrr;
+                    equity += winAmt;
+                    wins++;
+                    totalWinAmount += winAmt;
+                } else {
+                    equity -= riskAmount;
+                    totalLossAmount += riskAmount;
+                }
 
-      document.getElementById('val-init-balance').textContent = formatJPY(initBal);
-      document.getElementById('val-win-rate').textContent = winRate + ' %';
-      document.getElementById('val-rrr').textContent = rrrVal.toFixed(2);
-      document.getElementById('val-risk-per-trade').textContent = riskPct.toFixed(1) + ' %';
-      document.getElementById('val-ruin-threshold').textContent = ruinPct + ' %';
-      document.getElementById('val-total-trades').textContent = totalTrades + ' 回';
+                if (equity < 0) equity = 0;
+                path.push(equity);
 
-      const ruinAmount = initBal * (1 - ruinPct / 100);
-      document.getElementById('ruin-amount-desc').textContent = `※ 資金が ${formatJPY(ruinAmount)} 以下で破産判定`;
-
-      const lossRate = 100 - winRate;
-      let theoryPf = lossRate > 0 ? (winRate * rrrVal) / lossRate : 0;
-      document.getElementById('theory-pf').textContent = theoryPf.toFixed(2);
-
-      const ruinProb = calculateBalsara(winRate / 100, rrrVal, riskPct / 100, ruinPct / 100);
-      document.getElementById('balsara-ruin-rate').textContent = (ruinProb * 100).toFixed(1) + ' %';
-    }
-
-    function generateSimulationHistory() {
-      const initBal = parseFloat(document.getElementById('init-balance').value) || 1000000;
-      const winRate = parseFloat(document.getElementById('win-rate').value) / 100;
-      const rrrVal = parseFloat(document.getElementById('rrr').value);
-      const riskPct = parseFloat(document.getElementById('risk-per-trade').value) / 100;
-      const totalTrades = parseInt(document.getElementById('total-trades').value);
-      const isCompound = document.querySelector('input[name="calc-mode"]:checked').value === 'compound';
-
-      let currentBal = initBal;
-      let peakBal = initBal;
-      let history = [{ tradeNo: 0, win: null, pnl: 0, balance: initBal, ddPct: 0 }];
-
-      for (let i = 1; i <= totalTrades; i++) {
-        const isWin = Math.random() < winRate;
-        const riskAmount = isCompound ? currentBal * riskPct : initBal * riskPct;
-        const pnl = isWin ? riskAmount * rrrVal : -riskAmount;
-        currentBal += pnl;
-
-        if (currentBal > peakBal) peakBal = currentBal;
-        const ddPct = peakBal > 0 ? ((peakBal - currentBal) / peakBal) * 100 : 0;
-
-        history.push({ tradeNo: i, win: isWin, pnl, balance: currentBal, ddPct });
-      }
-      return history;
-    }
-
-    function initChart() {
-      const ctx = document.getElementById('equityChart').getContext('2d');
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [] },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: {
-            legend: {
-              display: true,
-              labels: { color: '#94a3b8', font: { size: 11 } }
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.raw || 0).toLocaleString()}円`
-              }
+                if (equity > peak) peak = equity;
+                const dd = (peak - equity) / peak;
+                if (dd > maxDD) maxDD = dd;
             }
-          },
-          scales: {
-            x: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#94a3b8', font: { size: 10 } },
-              title: { display: true, text: 'トレード回数', color: '#64748b', font: { size: 10 } }
-            },
-            y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: {
-                color: '#94a3b8',
-                font: { size: 10 },
-                callback: (val) => (val / 10000).toLocaleString() + '万'
-              }
+
+            const winRate = (wins / count) * 100;
+            const pf = totalLossAmount > 0 ? (totalWinAmount / totalLossAmount) : totalWinAmount;
+
+            return { path, wins, losses: count - wins, winRate, pf, maxDD, finalEquity: equity };
+        }
+
+        function runSingleSimulation() {
+            stopAutoPlay();
+            document.getElementById('montePanel').classList.add('hidden');
+
+            const capital = parseFloat(inputs.initialCapital.value);
+            const riskPct = parseFloat(inputs.riskPercent.value);
+            const winRate = parseFloat(inputs.winRate.value);
+            const rrr = parseFloat(inputs.rrr.value);
+            const count = parseInt(inputs.tradeCount.value);
+
+            singlePathData = generateTradePath(capital, riskPct, winRate, rrr, count);
+            currentStep = count;
+
+            renderSingleChart(singlePathData.path);
+            updateKPIs(singlePathData, capital, count);
+        }
+
+        function renderSingleChart(path) {
+            chart.data.labels = path.map((_, i) => i);
+            chart.data.datasets = [{
+                label: '残高',
+                data: path,
+                borderColor: '#3b82f6',
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+            }];
+            chart.update();
+            document.getElementById('tradeProgressText').innerText = `${path.length - 1} / ${inputs.tradeCount.value} トレード`;
+        }
+
+        function stepForward() {
+            stopAutoPlay();
+            if (!singlePathData.path || singlePathData.path.length === 0) {
+                const capital = parseFloat(inputs.initialCapital.value);
+                const riskPct = parseFloat(inputs.riskPercent.value);
+                const winRate = parseFloat(inputs.winRate.value);
+                const rrr = parseFloat(inputs.rrr.value);
+                const count = parseInt(inputs.tradeCount.value);
+                singlePathData = generateTradePath(capital, riskPct, winRate, rrr, count);
+                currentStep = 0;
             }
-          }
-        }
-      });
-    }
 
-    function renderStep(targetIndex) {
-      document.getElementById('montecarlo-panel').classList.add('hidden');
+            if (currentStep < singlePathData.path.length - 1) {
+                currentStep++;
+                const slicedPath = singlePathData.path.slice(0, currentStep + 1);
+                renderSingleChart(slicedPath);
 
-      if (!fullHistory || fullHistory.length === 0) return;
+                // Calculate KPIs up to current step
+                const currentEquity = slicedPath[slicedPath.length - 1];
+                const capital = parseFloat(inputs.initialCapital.value);
+                const pnl = currentEquity - capital;
+                const roi = (pnl / capital) * 100;
 
-      const totalSteps = fullHistory.length;
-      const validIndex = Math.min(Math.max(0, targetIndex), totalSteps - 1);
-      currentStepIndex = validIndex;
-
-      if (autoPlayInterval && validIndex >= totalSteps - 1) {
-        stopAutoPlay();
-      }
-
-      const initBal = parseFloat(document.getElementById('init-balance').value) || 1000000;
-      const ruinPct = parseFloat(document.getElementById('ruin-threshold').value);
-      const ruinLine = initBal * (1 - ruinPct / 100);
-
-      const labels = Array.from({ length: totalSteps }, (_, i) => i);
-      const visibleBalances = fullHistory.map((h, i) => i <= validIndex ? h.balance : null);
-
-      chartInstance.data.labels = labels;
-      chartInstance.data.datasets = [
-        {
-          label: '資産推移',
-          data: visibleBalances,
-          borderColor: '#3b82f6',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-          spanGaps: false
-        },
-        {
-          label: '初期資金 (±0)',
-          data: Array(totalSteps).fill(initBal),
-          borderColor: '#64748b',
-          borderWidth: 1.5,
-          borderDash: [4, 4],
-          pointRadius: 0
-        },
-        {
-          label: '破産ライン',
-          data: Array(totalSteps).fill(ruinLine),
-          borderColor: '#f43f5e',
-          borderWidth: 1.2,
-          borderDash: [2, 2],
-          pointRadius: 0
-        }
-      ];
-      chartInstance.update();
-
-      const sliced = fullHistory.slice(0, validIndex + 1);
-      updateKPIs(sliced);
-      renderTradeLog(sliced);
-    }
-
-    function runSingleSimulation() {
-      stopAutoPlay();
-      fullHistory = generateSimulationHistory();
-      currentStepIndex = fullHistory.length - 1;
-      renderStep(currentStepIndex);
-    }
-
-    function runMonteCarlo() {
-      stopAutoPlay();
-
-      const initBal = parseFloat(document.getElementById('init-balance').value) || 1000000;
-      const ruinPct = parseFloat(document.getElementById('ruin-threshold').value);
-      const ruinLine = initBal * (1 - ruinPct / 100);
-
-      const datasets = [];
-      monteCarloResults = [];
-
-      let totalFinalBal = 0;
-      let totalWins = 0;
-      let totalTradesCount = 0;
-
-      for (let k = 0; k < 10; k++) {
-        const history = generateSimulationHistory();
-        const balances = history.map(h => h.balance);
-        const finalBal = balances[balances.length - 1];
-        const diff = finalBal - initBal;
-        const roi = (diff / initBal) * 100;
-
-        let wins = 0, grossProfit = 0, grossLoss = 0, maxDD = 0;
-        let isRuin = false;
-
-        for (let i = 1; i < history.length; i++) {
-          const item = history[i];
-          if (item.win) { wins++; grossProfit += item.pnl; }
-          else { grossLoss += Math.abs(item.pnl); }
-          if (item.ddPct > maxDD) maxDD = item.ddPct;
-          if (item.balance <= ruinLine) isRuin = true;
+                document.getElementById('kpiFinalEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
+                document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+            }
         }
 
-        totalFinalBal += finalBal;
-        totalWins += wins;
-        totalTradesCount += (history.length - 1);
-
-        const actualWinRate = (wins / (history.length - 1)) * 100;
-        const actualPf = grossLoss > 0 ? (grossProfit / grossLoss) : (grossProfit > 0 ? 99.9 : 0);
-
-        monteCarloResults.push({
-          pathIndex: k + 1,
-          color: palette[k],
-          finalBal,
-          diff,
-          roi,
-          actualWinRate,
-          actualPf,
-          maxDD,
-          isRuin
-        });
-
-        datasets.push({
-          label: `パス #${k+1}`,
-          data: balances,
-          borderColor: palette[k],
-          borderWidth: 1.5,
-          pointRadius: 0,
-          fill: false
-        });
-      }
-
-      datasets.push({
-        label: '初期資金 (±0)',
-        data: Array(datasets[0].data.length).fill(initBal),
-        borderColor: '#64748b',
-        borderWidth: 1.5,
-        borderDash: [4, 4],
-        pointRadius: 0
-      });
-
-      datasets.push({
-        label: '破産ライン',
-        data: Array(datasets[0].data.length).fill(ruinLine),
-        borderColor: '#f43f5e',
-        borderWidth: 1.2,
-        borderDash: [2, 2],
-        pointRadius: 0
-      });
-
-      chartInstance.data.labels = Array.from({ length: datasets[0].data.length }, (_, i) => i);
-      chartInstance.data.datasets = datasets;
-      chartInstance.update();
-
-      document.getElementById('montecarlo-panel').classList.remove('hidden');
-
-      currentSortKey = 'pathIndex';
-      currentSortAsc = true;
-      renderMonteCarloTable();
-
-      const avgFinalBal = totalFinalBal / 10;
-      const avgDiff = avgFinalBal - initBal;
-      const avgRoi = (avgDiff / initBal) * 100;
-      const avgWinRate = (totalWins / totalTradesCount) * 100;
-
-      document.getElementById('res-final-balance').textContent = formatJPY(avgFinalBal);
-      document.getElementById('res-roi').textContent = `平均損益: ${formatSignedJPY(avgDiff)} (${avgRoi >= 0 ? '+' : ''}${avgRoi.toFixed(1)}%)`;
-      document.getElementById('res-win-rate').textContent = `${avgWinRate.toFixed(1)} %`;
-      document.getElementById('res-win-count').textContent = `10本平均実績勝率`;
-      document.getElementById('res-actual-pf').textContent = 'テーブル参照';
-      document.getElementById('res-max-dd').textContent = '10本描画中';
-      document.getElementById('res-streak').textContent = 'ソート可能';
-    }
-
-    function renderMonteCarloTable() {
-      const tableBody = document.getElementById('montecarlo-table-body');
-      tableBody.innerHTML = '';
-
-      const keys = ['pathIndex', 'finalBal', 'diff', 'actualWinRate', 'actualPf', 'maxDD', 'isRuin'];
-      keys.forEach(k => {
-        const iconEl = document.getElementById(`sort-icon-${k}`);
-        if (iconEl) {
-          if (k === currentSortKey) {
-            iconEl.textContent = currentSortAsc ? '▲' : '▼';
-            iconEl.className = 'text-[10px] text-blue-400 font-bold';
-          } else {
-            iconEl.textContent = '↕';
-            iconEl.className = 'text-[10px] text-slate-500';
-          }
-        }
-      });
-
-      const sorted = [...monteCarloResults].sort((a, b) => {
-        let valA = a[currentSortKey];
-        let valB = b[currentSortKey];
-
-        if (typeof valA === 'boolean') valA = valA ? 1 : 0;
-        if (typeof valB === 'boolean') valB = valB ? 1 : 0;
-
-        if (valA < valB) return currentSortAsc ? -1 : 1;
-        if (valA > valB) return currentSortAsc ? 1 : -1;
-        return 0;
-      });
-
-      sorted.forEach(res => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-700/40 transition-colors";
-        tr.innerHTML = `
-          <td class="px-3 py-2 font-bold" style="color: ${res.color}">#${res.pathIndex}</td>
-          <td class="px-3 py-2 text-slate-200">${formatJPY(res.finalBal)}</td>
-          <td class="px-3 py-2 font-semibold ${res.diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-            ${formatSignedJPY(res.diff)} (${res.diff >= 0 ? '+' : ''}${res.roi.toFixed(1)}%)
-          </td>
-          <td class="px-3 py-2 text-slate-300">${res.actualWinRate.toFixed(1)}%</td>
-          <td class="px-3 py-2 text-indigo-300">${res.actualPf.toFixed(2)}</td>
-          <td class="px-3 py-2 text-rose-300">${res.maxDD.toFixed(1)}%</td>
-          <td class="px-3 py-2 font-bold ${res.isRuin ? 'text-rose-400' : 'text-emerald-400'}">${res.isRuin ? '到達' : '無事'}</td>
-        `;
-        tableBody.appendChild(tr);
-      });
-    }
-
-    function updateKPIs(sliced) {
-      if (!sliced || sliced.length <= 1) {
-        document.getElementById('res-final-balance').textContent = '-- 円';
-        document.getElementById('res-roi').textContent = '損益額: -- 円 (--%)';
-        document.getElementById('res-win-rate').textContent = '-- %';
-        document.getElementById('res-win-count').textContent = '-- 勝ち / -- 負け';
-        document.getElementById('res-actual-pf').textContent = '--';
-        document.getElementById('res-max-dd').textContent = '-- %';
-        document.getElementById('res-streak').textContent = '--連勝 / --連敗';
-        return;
-      }
-
-      const initBal = sliced[0].balance;
-      const finalBal = sliced[sliced.length - 1].balance;
-      const diff = finalBal - initBal;
-      const roi = (diff / initBal) * 100;
-
-      document.getElementById('res-final-balance').textContent = formatJPY(finalBal);
-      document.getElementById('res-roi').textContent = `損益額: ${formatSignedJPY(diff)} (${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%)`;
-
-      let grossProfit = 0, grossLoss = 0, wins = 0;
-      let maxWinStreak = 0, currWin = 0, maxLossStreak = 0, currLoss = 0;
-      let maxDD = 0;
-
-      for (let i = 1; i < sliced.length; i++) {
-        const item = sliced[i];
-        if (item.win) {
-          grossProfit += item.pnl; wins++; currWin++; currLoss = 0;
-          if (currWin > maxWinStreak) maxWinStreak = currWin;
-        } else {
-          grossLoss += Math.abs(item.pnl); currLoss++; currWin = 0;
-          if (currLoss > maxLossStreak) maxLossStreak = currLoss;
-        }
-        if (item.ddPct > maxDD) maxDD = item.ddPct;
-      }
-
-      const totalExecuted = sliced.length - 1;
-      const actualWinRate = totalExecuted > 0 ? (wins / totalExecuted) * 100 : 0;
-      const actualPf = grossLoss > 0 ? (grossProfit / grossLoss) : (grossProfit > 0 ? 99.9 : 0);
-
-      document.getElementById('res-win-rate').textContent = `${actualWinRate.toFixed(1)} %`;
-      document.getElementById('res-win-count').textContent = `${wins} 勝ち / ${totalExecuted - wins} 負け`;
-      document.getElementById('res-actual-pf').textContent = actualPf.toFixed(2);
-      document.getElementById('res-max-dd').textContent = `${maxDD.toFixed(1)} %`;
-      document.getElementById('res-streak').textContent = `${maxWinStreak}連勝 / ${maxLossStreak}連敗`;
-    }
-
-    function renderTradeLog(sliced) {
-      const tbody = document.getElementById('trade-log-body');
-      const totalCount = fullHistory.length > 0 ? fullHistory.length - 1 : 0;
-      const currentCount = sliced.length > 0 ? sliced.length - 1 : 0;
-      document.getElementById('trade-progress-badge').textContent = `${currentCount} / ${totalCount}`;
-      tbody.innerHTML = '';
-
-      if (!sliced || sliced.length <= 1) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-center text-slate-500 font-sans">「通常シミュレーション実行」を押してスタートしてください</td></tr>`;
-        return;
-      }
-
-      const items = sliced.slice(1).reverse();
-      items.forEach(h => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-700/40 transition-colors";
-        tr.innerHTML = `
-          <td class="px-3 py-1.5 text-slate-400">#${h.tradeNo}</td>
-          <td class="px-3 py-1.5 font-bold ${h.win ? 'text-emerald-400' : 'text-rose-400'}">${h.win ? 'WIN' : 'LOSE'}</td>
-          <td class="px-3 py-1.5 font-semibold ${h.pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${formatSignedJPY(h.pnl)}</td>
-          <td class="px-3 py-1.5 text-slate-200">${Math.round(h.balance).toLocaleString()} 円</td>
-          <td class="px-3 py-1.5 text-slate-400">-${h.ddPct.toFixed(1)}%</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function stopAutoPlay() {
-      if (autoPlayInterval) {
-        clearInterval(autoPlayInterval);
-        autoPlayInterval = null;
-      }
-      document.getElementById('btn-play').innerHTML = '<span>▶</span> 自動再生 / 停止';
-    }
-
-    function resetSimulator() {
-      stopAutoPlay();
-
-      document.getElementById('init-balance').value = 1000000;
-      document.getElementById('win-rate').value = 60;
-      document.getElementById('rrr').value = 1.00;
-      document.getElementById('risk-per-trade').value = 2.0;
-      document.getElementById('ruin-threshold').value = 50;
-      document.getElementById('total-trades').value = 500;
-      const compoundRadio = document.querySelector('input[name="calc-mode"][value="compound"]');
-      if (compoundRadio) compoundRadio.checked = true;
-
-      updateUIInputs();
-
-      fullHistory = [];
-      currentStepIndex = 0;
-      monteCarloResults = [];
-
-      if (chartInstance) {
-        chartInstance.data.labels = [];
-        chartInstance.data.datasets = [];
-        chartInstance.update();
-      }
-
-      document.getElementById('montecarlo-panel').classList.add('hidden');
-      document.getElementById('montecarlo-table-body').innerHTML = '';
-
-      updateKPIs([]);
-      renderTradeLog([]);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initChart();
-      updateUIInputs();
-
-      const inputs = ['init-balance', 'win-rate', 'rrr', 'risk-per-trade', 'ruin-threshold', 'total-trades'];
-      inputs.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', updateUIInputs);
-      });
-      document.querySelectorAll('input[name="calc-mode"]').forEach(r => {
-        r.addEventListener('change', updateUIInputs);
-      });
-
-      document.querySelectorAll('th.sortable').forEach(th => {
-        th.addEventListener('click', () => {
-          const key = th.getAttribute('data-sort-key');
-          if (currentSortKey === key) {
-            currentSortAsc = !currentSortAsc;
-          } else {
-            currentSortKey = key;
-            currentSortAsc = key === 'pathIndex';
-          }
-          renderMonteCarloTable();
-        });
-      });
-
-      document.getElementById('btn-run').addEventListener('click', runSingleSimulation);
-      document.getElementById('btn-montecarlo').addEventListener('click', runMonteCarlo);
-      document.getElementById('reset-params').addEventListener('click', resetSimulator);
-
-      document.getElementById('btn-step').addEventListener('click', () => {
-        if (!fullHistory || fullHistory.length <= 1) {
-          runSingleSimulation();
-          currentStepIndex = 0;
-          renderStep(currentStepIndex);
-          return;
-        }
-        if (currentStepIndex < fullHistory.length - 1) {
-          currentStepIndex++;
-          renderStep(currentStepIndex);
-        }
-      });
-
-      document.getElementById('btn-play').addEventListener('click', () => {
-        if (!fullHistory || fullHistory.length <= 1) {
-          runSingleSimulation();
-          currentStepIndex = 0;
-        }
-
-        if (autoPlayInterval) {
-          stopAutoPlay();
-        } else {
-          if (currentStepIndex >= fullHistory.length - 1) {
-            currentStepIndex = 0;
-          }
-          document.getElementById('btn-play').innerHTML = '<span>⏸</span> 停止';
-          autoPlayInterval = setInterval(() => {
-            if (currentStepIndex < fullHistory.length - 1) {
-              currentStepIndex++;
-              renderStep(currentStepIndex);
+        function toggleAutoPlay() {
+            if (autoPlayTimer) {
+                stopAutoPlay();
             } else {
-              stopAutoPlay();
+                if (!singlePathData.path || currentStep >= singlePathData.path.length - 1) {
+                    runSingleSimulation();
+                    currentStep = 0;
+                }
+                document.getElementById('btnAutoPlay').innerText = '⏸ 停止';
+                autoPlayTimer = setInterval(() => {
+                    if (currentStep < singlePathData.path.length - 1) {
+                        currentStep++;
+                        const slicedPath = singlePathData.path.slice(0, currentStep + 1);
+                        renderSingleChart(slicedPath);
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 30);
             }
-          }, 40);
         }
-      });
-    });
-  </script>
+
+        function stopAutoPlay() {
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+                document.getElementById('btnAutoPlay').innerText = '⏯ 自動再生';
+            }
+        }
+
+        function updateKPIs(data, initialCapital, totalTrades) {
+            const pnl = data.finalEquity - initialCapital;
+            const roi = (pnl / initialCapital) * 100;
+
+            document.getElementById('kpiFinalEquity').innerText = `${Math.round(data.finalEquity).toLocaleString()} 円`;
+            document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+            
+            document.getElementById('kpiWinRate').innerText = `${data.winRate.toFixed(1)}%`;
+            document.getElementById('kpiWinCount').innerText = `${data.wins}勝 ${data.losses}敗`;
+
+            document.getElementById('kpiPF').innerText = data.pf.toFixed(2);
+            document.getElementById('kpiMaxDD').innerText = `${(data.maxDD * 100).toFixed(1)}%`;
+        }
+
+        function runMonteCarlo() {
+            stopAutoPlay();
+            const capital = parseFloat(inputs.initialCapital.value);
+            const riskPct = parseFloat(inputs.riskPercent.value);
+            const winRate = parseFloat(inputs.winRate.value);
+            const rrr = parseFloat(inputs.rrr.value);
+            const count = parseInt(inputs.tradeCount.value);
+
+            montePathsData = [];
+            chart.data.labels = Array.from({ length: count + 1 }, (_, i) => i);
+            chart.data.datasets = [];
+
+            for (let i = 0; i < 10; i++) {
+                const res = generateTradePath(capital, riskPct, winRate, rrr, count);
+                res.id = i + 1;
+                res.color = colors[i % colors.length];
+                montePathsData.push(res);
+
+                chart.data.datasets.push({
+                    label: `試行 #${res.id}`,
+                    data: res.path,
+                    borderColor: res.color,
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                });
+            }
+
+            chart.update();
+            document.getElementById('montePanel').classList.remove('hidden');
+            renderMonteTable();
+        }
+
+        function renderMonteTable() {
+            const capital = parseFloat(inputs.initialCapital.value);
+            const tbody = document.getElementById('monteTableBody');
+            tbody.innerHTML = '';
+
+            const sorted = [...montePathsData].sort((a, b) => {
+                let valA, valB;
+                if (currentSort.key === 'pnl') {
+                    valA = a.finalEquity - capital;
+                    valB = b.finalEquity - capital;
+                } else {
+                    valA = a[currentSort.key];
+                    valB = b[currentSort.key];
+                }
+                return currentSort.asc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+            });
+
+            sorted.forEach(item => {
+                const pnl = item.finalEquity - capital;
+                const roi = (pnl / capital) * 100;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition';
+                tr.innerHTML = `
+                    <td class="p-2.5 font-semibold" style="color:${item.color}">#${item.id}</td>
+                    <td class="p-2.5 font-bold">${Math.round(item.finalEquity).toLocaleString()} 円</td>
+                    <td class="p-2.5 ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()} 円 (${roi.toFixed(1)}%)
+                    </td>
+                    <td class="p-2.5">${item.winRate.toFixed(1)}%</td>
+                    <td class="p-2.5">${item.pf.toFixed(2)}</td>
+                    <td class="p-2.5 text-rose-400">${(item.maxDD * 100).toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sortMonteTable(key) {
+            if (currentSort.key === key) {
+                currentSort.asc = !currentSort.asc;
+            } else {
+                currentSort.key = key;
+                currentSort.asc = false;
+            }
+            renderMonteTable();
+        }
+
+        function resetAll() {
+            stopAutoPlay();
+            inputs.initialCapital.value = 1000000;
+            inputs.riskPercent.value = 2.0;
+            inputs.winRate.value = 60;
+            inputs.rrr.value = 1.00;
+            inputs.bankruptRate.value = 50;
+            inputs.tradeCount.value = 500;
+
+            updateControlDisplays();
+
+            singlePathData = [];
+            montePathsData = [];
+            currentStep = 0;
+
+            chart.data.labels = [];
+            chart.data.datasets = [];
+            chart.update();
+
+            document.getElementById('montePanel').classList.add('hidden');
+            document.getElementById('kpiFinalEquity').innerText = '1,000,000 円';
+            document.getElementById('kpiRoi').innerText = '±0.0%';
+            document.getElementById('kpiWinRate').innerText = '0.0%';
+            document.getElementById('kpiWinCount').innerText = '0勝 0敗';
+            document.getElementById('kpiPF').innerText = '0.00';
+            document.getElementById('kpiMaxDD').innerText = '0.0%';
+            document.getElementById('tradeProgressText').innerText = '0 / 500 トレード';
+        }
+    </script>
 </body>
 </html>
