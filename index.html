@@ -48,10 +48,10 @@
             <div class="flex items-center space-x-3">
                 <span class="text-2xl">📈</span>
                 <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                    FX期待値 & 1トレード詳細ログ シミュレーター
+                    FX期待値シミュレーター
                 </h1>
             </div>
-            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.0</span>
+            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.1</span>
         </div>
     </header>
 
@@ -116,14 +116,6 @@
                     <p class="text-[11px] text-slate-500 mt-1">判定ライン: 残高 <span id="bankruptAmount" class="text-slate-400">500,000 円</span> 以下</p>
                 </div>
 
-                <!-- Stop On Bankruptcy Option -->
-                <div class="flex items-center space-x-2 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-                    <input type="checkbox" id="stopOnBankrupt" checked class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0 cursor-pointer">
-                    <label for="stopOnBankrupt" class="text-xs text-slate-300 cursor-pointer select-none">
-                        破産判定ライン到達時にトレードを即時停止
-                    </label>
-                </div>
-
                 <!-- Trade Count Slider -->
                 <div>
                     <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
@@ -169,7 +161,7 @@
                 <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5 text-xs">
                     <div class="font-semibold text-slate-300 border-b border-slate-800 pb-1 flex justify-between items-center">
                         <span>📊 理論分析指標</span>
-                        <span class="text-[10px] text-slate-500">バルサラ公式 (二分法数値計算)</span>
+                        <span class="text-[10px] text-slate-500">バルサラ公式</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-400">理論値PF</span>
@@ -188,7 +180,7 @@
             <!-- KPI Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-blue-500">
-                    <div class="text-[11px] text-slate-400">最終資産 / 損益</div>
+                    <div class="text-[11px] text-slate-400">現在の資産 / 損益</div>
                     <div id="kpiFinalEquity" class="text-sm font-bold text-slate-100 mt-1">1,000,000 円</div>
                     <div id="kpiRoi" class="text-[10px] text-slate-400">±0.0%</div>
                 </div>
@@ -273,7 +265,6 @@
 
                 <!-- Monte Carlo Summary Metrics -->
                 <div id="monteSummaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <!-- Dynamic Summary Cards -->
                 </div>
 
                 <div class="max-h-96 overflow-y-auto pr-1">
@@ -320,7 +311,6 @@
             winRate: document.getElementById('winRate'),
             rrr: document.getElementById('rrr'),
             bankruptRate: document.getElementById('bankruptRate'),
-            stopOnBankrupt: document.getElementById('stopOnBankrupt'),
             tradeCount: document.getElementById('tradeCount')
         };
 
@@ -377,7 +367,6 @@
             return (w * rrr) / (1 - w);
         }
 
-        // バルサラ破産確率 (二分法数値計算)
         function calculateBalsaraBankruptcy(winRatePct, rrr, riskPct, bankruptRatePct) {
             const W = winRatePct / 100;
             const L = 1 - W;
@@ -450,8 +439,8 @@
             });
         }
 
-        // 1トレード毎の詳細ログを記録するシミュレーション生成処理
-        function generateTradePath(capital, riskPct, winRatePct, rrr, count, bankruptRatePct, compound, stopOnBankrupt) {
+        // 全トレードログ・推移データ生成
+        function generateTradePath(capital, riskPct, winRatePct, rrr, count, bankruptRatePct, compound) {
             let equity = capital;
             const path = [equity];
             const logs = [];
@@ -466,10 +455,6 @@
             const fixedRiskAmt = capital * (riskPct / 100);
 
             for (let i = 0; i < count; i++) {
-                if (stopOnBankrupt && isBankrupt) {
-                    break; // 破産時に即時試行停止
-                }
-
                 const riskAmount = compound ? (equity * (riskPct / 100)) : fixedRiskAmt;
                 const isWin = Math.random() < (winRatePct / 100);
                 let pnlAmount = 0;
@@ -535,13 +520,12 @@
             const rrr = parseFloat(inputs.rrr.value);
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
-            const stopOnBankrupt = inputs.stopOnBankrupt.checked;
 
-            singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound, stopOnBankrupt);
+            singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
             currentStep = singleSimulationResult.totalExecuted;
 
             renderSingleChart(singleSimulationResult.path, capital, bankruptRate);
-            updateKPIs(singleSimulationResult, capital, bankruptRate);
+            updateProgressKPIs(currentStep);
             renderTradeLogTable(singleSimulationResult.logs);
         }
 
@@ -581,6 +565,7 @@
             document.getElementById('tradeProgressText').innerText = `${path.length - 1} / ${inputs.tradeCount.value} トレード`;
         }
 
+        // 1トレード送りボタン押下時の処理（ログ・チャート・KPI連動修正）
         function stepForward() {
             stopAutoPlay();
             document.getElementById('montePanel').classList.add('hidden');
@@ -589,14 +574,14 @@
             const capital = parseFloat(inputs.initialCapital.value) || 1000000;
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
 
-            if (!singleSimulationResult || !singleSimulationResult.path) {
+            // 未実行または最終ステップに達している場合は新規シミュレーションを生成してステップを初期化
+            if (!singleSimulationResult || currentStep >= singleSimulationResult.totalExecuted) {
                 const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
                 const winRate = parseFloat(inputs.winRate.value);
                 const rrr = parseFloat(inputs.rrr.value);
                 const count = parseInt(inputs.tradeCount.value);
-                const stopOnBankrupt = inputs.stopOnBankrupt.checked;
 
-                singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound, stopOnBankrupt);
+                singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
                 currentStep = 0;
             }
 
@@ -607,13 +592,7 @@
 
                 renderSingleChart(slicedPath, capital, bankruptRate);
                 renderTradeLogTable(slicedLogs);
-
-                const currentEquity = slicedPath[slicedPath.length - 1];
-                const pnl = currentEquity - capital;
-                const roi = (pnl / capital) * 100;
-
-                document.getElementById('kpiFinalEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
-                document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+                updateProgressKPIs(currentStep);
             }
         }
 
@@ -622,9 +601,17 @@
                 stopAutoPlay();
             } else {
                 if (!singleSimulationResult || currentStep >= singleSimulationResult.totalExecuted) {
-                    runSingleSimulation();
+                    const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+                    const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
+                    const winRate = parseFloat(inputs.winRate.value);
+                    const rrr = parseFloat(inputs.rrr.value);
+                    const bankruptRate = parseFloat(inputs.bankruptRate.value);
+                    const count = parseInt(inputs.tradeCount.value);
+
+                    singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
                     currentStep = 0;
                 }
+
                 document.getElementById('btnAutoPlay').innerText = '⏸ 停止';
                 autoPlayTimer = setInterval(() => {
                     if (currentStep < singleSimulationResult.totalExecuted) {
@@ -636,6 +623,7 @@
 
                         renderSingleChart(slicedPath, capital, bankruptRate);
                         renderTradeLogTable(slicedLogs);
+                        updateProgressKPIs(currentStep);
                     } else {
                         stopAutoPlay();
                     }
@@ -651,7 +639,7 @@
             }
         }
 
-        // 1トレードログテーブルの描画
+        // 1トレードログテーブル描画関数
         function renderTradeLogTable(logs) {
             const tbody = document.getElementById('tradeLogTableBody');
             document.getElementById('logCountBadge').innerText = `${logs.length}件`;
@@ -701,21 +689,65 @@
             }
         }
 
-        function updateKPIs(data, initialCapital, bankruptRatePct) {
-            const pnl = data.finalEquity - initialCapital;
+        // 進行度に応じたリアルタイムKPI更新関数
+        function updateProgressKPIs(stepCount) {
+            if (!singleSimulationResult) return;
+
+            const initialCapital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const bankruptRatePct = parseFloat(inputs.bankruptRate.value);
+            const bankruptThreshold = initialCapital * (1 - bankruptRatePct / 100);
+
+            if (stepCount === 0) {
+                document.getElementById('kpiFinalEquity').innerText = `${Math.round(initialCapital).toLocaleString()} 円`;
+                document.getElementById('kpiRoi').innerText = '±0.0%';
+                document.getElementById('kpiWinRate').innerText = '0.0%';
+                document.getElementById('kpiWinCount').innerText = '0勝 0敗';
+                document.getElementById('kpiPF').innerText = '0.00';
+                document.getElementById('kpiMaxDD').innerText = '0.0%';
+                document.getElementById('kpiBankruptStatus').innerText = '未到達 (正常)';
+                document.getElementById('kpiBankruptStatus').className = 'text-sm font-bold text-emerald-400 mt-1';
+                return;
+            }
+
+            const activeLogs = singleSimulationResult.logs.slice(0, stepCount);
+            const currentEquity = activeLogs[activeLogs.length - 1].equityAfter;
+            const pnl = currentEquity - initialCapital;
             const roi = (pnl / initialCapital) * 100;
 
-            document.getElementById('kpiFinalEquity').innerText = `${Math.round(data.finalEquity).toLocaleString()} 円`;
-            document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
-            
-            document.getElementById('kpiWinRate').innerText = `${data.winRate.toFixed(1)}%`;
-            document.getElementById('kpiWinCount').innerText = `${data.wins}勝 ${data.losses}敗`;
+            let wins = 0;
+            let totalWinAmt = 0;
+            let totalLossAmt = 0;
+            let maxDD = 0;
+            let peak = initialCapital;
+            let isBankrupt = false;
 
-            document.getElementById('kpiPF').innerText = data.pf.toFixed(2);
-            document.getElementById('kpiMaxDD').innerText = `${(data.maxDD * 100).toFixed(1)}%`;
+            activeLogs.forEach(log => {
+                if (log.isWin) {
+                    wins++;
+                    totalWinAmt += log.pnlAmount;
+                } else {
+                    totalLossAmt += Math.abs(log.pnlAmount);
+                }
+
+                if (log.equityAfter > peak) peak = log.equityAfter;
+                const dd = peak > 0 ? (peak - log.equityAfter) / peak : 0;
+                if (dd > maxDD) maxDD = dd;
+
+                if (log.equityAfter <= bankruptThreshold) isBankrupt = true;
+            });
+
+            const winRate = (wins / stepCount) * 100;
+            const pf = totalLossAmt > 0 ? (totalWinAmt / totalLossAmt) : (totalWinAmt > 0 ? 999 : 0);
+
+            document.getElementById('kpiFinalEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
+            document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+            document.getElementById('kpiWinRate').innerText = `${winRate.toFixed(1)}%`;
+            document.getElementById('kpiWinCount').innerText = `${wins}勝 ${stepCount - wins}敗`;
+            document.getElementById('kpiPF').innerText = pf.toFixed(2);
+            document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
 
             const statusEl = document.getElementById('kpiBankruptStatus');
-            if (data.isBankrupt) {
+            if (isBankrupt) {
                 statusEl.innerText = '到達 (破産)';
                 statusEl.className = 'text-sm font-bold text-rose-500 mt-1';
             } else {
@@ -737,7 +769,6 @@
             const rrr = parseFloat(inputs.rrr.value);
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
-            const stopOnBankrupt = inputs.stopOnBankrupt.checked;
             const numRuns = parseInt(document.getElementById('monteRuns').value);
 
             document.getElementById('monteRunCountText').innerText = numRuns;
@@ -752,7 +783,7 @@
             const equities = [];
 
             for (let i = 0; i < numRuns; i++) {
-                const res = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound, stopOnBankrupt);
+                const res = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
                 res.id = i + 1;
                 res.color = colors[i % colors.length];
                 montePathsData.push(res);
@@ -762,7 +793,6 @@
                 sumMaxDD += res.maxDD;
                 equities.push(res.finalEquity);
 
-                // チャート線描画は描画負荷軽減のため最大50本までに制限
                 if (i < 50) {
                     chart.data.datasets.push({
                         label: `試行 #${res.id}`,
@@ -788,7 +818,6 @@
 
             chart.update();
 
-            // モンテカルロ統計サマリーの計算
             equities.sort((a, b) => a - b);
             const medianEquity = equities[Math.floor(equities.length / 2)];
             const avgEquity = sumFinalEquity / numRuns;
@@ -883,7 +912,6 @@
             inputs.winRate.value = 60;
             inputs.rrr.value = 1.00;
             inputs.bankruptRate.value = 50;
-            inputs.stopOnBankrupt.checked = true;
             inputs.tradeCount.value = 500;
 
             updateControlDisplays();
