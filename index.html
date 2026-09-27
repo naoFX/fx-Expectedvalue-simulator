@@ -51,7 +51,7 @@
                     FX期待値シミュレーター
                 </h1>
             </div>
-            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.1</span>
+            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.3</span>
         </div>
     </header>
 
@@ -78,8 +78,8 @@
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">初期口座資金 (円)</label>
-                            <input type="number" id="initialCapital" value="1000000" step="100000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">初期資金 (円)</label>
+                            <input type="text" id="initialCapital" value="1,000,000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-400 mb-1">1トレードリスク (%)</label>
@@ -183,11 +183,14 @@
                     <div class="text-[11px] text-slate-400">現在の資産 / 損益</div>
                     <div id="kpiFinalEquity" class="text-sm font-bold text-slate-100 mt-1">1,000,000 円</div>
                     <div id="kpiRoi" class="text-[10px] text-slate-400">±0.0%</div>
+                    <div id="kpiMultiple" class="text-[10px] text-blue-400 font-semibold mt-0.5">1.00倍</div>
                 </div>
+                <!-- 実績勝率カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-emerald-500">
                     <div class="text-[11px] text-slate-400">実績勝率</div>
                     <div id="kpiWinRate" class="text-sm font-bold text-slate-100 mt-1">0.0%</div>
-                    <div id="kpiWinCount" class="text-[10px] text-slate-400">0勝 0敗</div>
+                    <div id="kpiWinLossCount" class="text-[10px] text-slate-300 font-semibold mt-0.5">(0勝 0破)</div>
+                    <div id="kpiTheoreticalWinRate" class="text-[10px] text-slate-400">理論: 60.0%</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-amber-500">
                     <div class="text-[11px] text-slate-400">実績PF</div>
@@ -196,7 +199,7 @@
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500">
                     <div class="text-[11px] text-slate-400">最大DD</div>
-                    <div id="kpiMaxDD" class="text-sm font-bold text-slate-100 mt-1">0.0%</div>
+                    <div id="kpiMaxDD" class="text-sm font-bold text-rose-400 mt-1">0.0%</div>
                     <div id="kpiMaxDDAmount" class="text-[10px] text-slate-400">0 円</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
@@ -208,10 +211,27 @@
 
             <!-- Chart Panel -->
             <div class="glass-panel p-6 rounded-2xl">
-                <h3 class="text-sm font-semibold text-slate-300 mb-4 flex justify-between items-center">
-                    <span>資産推移曲線 (Equity Curve)</span>
-                    <span id="tradeProgressText" class="text-xs text-slate-500">0 / 500 トレード</span>
-                </h3>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1">
+                    <h3 class="text-sm font-semibold text-slate-300">
+                        資産推移曲線 (Equity Curve)
+                    </h3>
+                    <span id="tradeProgressText" class="text-base font-bold text-cyan-400">0 / 500 トレード</span>
+                </div>
+                <!-- 凡例・カラー説明 -->
+                <div class="flex flex-wrap items-center gap-4 text-xs mb-4 pb-2 border-b border-slate-700/50">
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
+                        <span class="text-slate-300 font-medium">青：資産推移</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-0.5 border-b-2 border-dashed border-amber-400 inline-block"></span>
+                        <span class="text-slate-300 font-medium">黄色：初期資金ライン</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-0.5 border-b-2 border-dashed border-rose-500 inline-block"></span>
+                        <span class="text-slate-300 font-medium">赤：破産判定ライン</span>
+                    </div>
+                </div>
                 <div class="relative h-72 w-full">
                     <canvas id="equityChart"></canvas>
                 </div>
@@ -226,7 +246,7 @@
                     </h3>
                     <div class="flex items-center space-x-2">
                         <button id="btnToggleLogOrder" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded border border-slate-700 transition">
-                            昇順 (古い順)
+                            降順 (新しい順)
                         </button>
                     </div>
                 </div>
@@ -237,7 +257,6 @@
                             <tr>
                                 <th class="p-2.5">トレード#</th>
                                 <th class="p-2.5">勝敗結果</th>
-                                <th class="p-2.5">リスク額 (許容)</th>
                                 <th class="p-2.5">決済損益</th>
                                 <th class="p-2.5">トレード後残高</th>
                                 <th class="p-2.5">その時点のDD</th>
@@ -245,7 +264,7 @@
                         </thead>
                         <tbody id="tradeLogTableBody" class="divide-y divide-slate-800/50">
                             <tr>
-                                <td colspan="6" class="p-6 text-center text-slate-500">
+                                <td colspan="5" class="p-6 text-center text-slate-500">
                                     「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
                                 </td>
                             </tr>
@@ -296,7 +315,7 @@
         let currentStep = 0;
         let autoPlayTimer = null;
         let isCompound = true;
-        let isLogAscending = true;
+        let isLogAscending = false;
         let currentSort = { key: 'id', asc: true };
 
         const colors = [
@@ -324,6 +343,13 @@
             balsaraRate: document.getElementById('balsaraRate')
         };
 
+        // カンマ区切りの数値を数値型へ変換するヘルパー関数
+        function parseCapitalValue() {
+            const valStr = inputs.initialCapital.value.replace(/,/g, '');
+            const num = parseFloat(valStr);
+            return isNaN(num) ? 0 : num;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initChart();
             bindEvents();
@@ -333,6 +359,12 @@
         function bindEvents() {
             Object.keys(inputs).forEach(key => {
                 inputs[key].addEventListener('input', updateControlDisplays);
+            });
+
+            // 初期資金のカンマ区切りリアルタイムフォーマット処理
+            inputs.initialCapital.addEventListener('blur', () => {
+                const num = parseCapitalValue();
+                inputs.initialCapital.value = Math.round(num).toLocaleString();
             });
 
             document.getElementById('btnModeCompound').addEventListener('click', () => setMode(true));
@@ -408,7 +440,7 @@
             displays.bankruptRateVal.innerText = `${bankruptRate.toFixed(1)}%`;
             displays.tradeCountVal.innerText = inputs.tradeCount.value;
 
-            const capital = parseFloat(inputs.initialCapital.value) || 0;
+            const capital = parseCapitalValue();
             const threshold = capital * (1 - bankruptRate / 100);
             displays.bankruptAmount.innerText = `${Math.round(threshold).toLocaleString()} 円`;
 
@@ -418,6 +450,14 @@
 
             const balsara = calculateBalsaraBankruptcy(winRate, rrr, riskPct, bankruptRate);
             displays.balsaraRate.innerText = `${balsara.toFixed(1)}%`;
+
+            // 理論勝率の表示更新
+            document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${winRate.toFixed(1)}%`;
+            if (!singleSimulationResult || currentStep === 0) {
+                document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
+            } else {
+                updateProgressKPIs(currentStep);
+            }
         }
 
         function initChart() {
@@ -439,7 +479,6 @@
             });
         }
 
-        // 全トレードログ・推移データ生成
         function generateTradePath(capital, riskPct, winRatePct, rrr, count, bankruptRatePct, compound) {
             let equity = capital;
             const path = [equity];
@@ -479,7 +518,9 @@
 
                 if (equity > peak) peak = equity;
                 const currentDD = peak > 0 ? (peak - equity) / peak : 0;
-                if (currentDD > maxDD) maxDD = currentDD;
+                if (currentDD > maxDD) {
+                    maxDD = currentDD;
+                }
 
                 logs.push({
                     tradeIndex: i + 1,
@@ -514,7 +555,7 @@
             document.getElementById('montePanel').classList.add('hidden');
             document.getElementById('singleLogPanel').classList.remove('hidden');
 
-            const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const capital = parseCapitalValue() || 1000000;
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
@@ -535,7 +576,7 @@
 
             chart.data.datasets = [
                 {
-                    label: '残高',
+                    label: '青：資産推移',
                     data: path,
                     borderColor: '#3b82f6',
                     borderWidth: 2,
@@ -543,16 +584,16 @@
                     fill: false
                 },
                 {
-                    label: '初期資金ライン',
+                    label: '黄色：初期資金ライン',
                     data: Array(path.length).fill(capital),
-                    borderColor: '#64748b',
-                    borderWidth: 1,
+                    borderColor: '#facc15',
+                    borderWidth: 1.5,
                     borderDash: [4, 4],
                     pointRadius: 0,
                     fill: false
                 },
                 {
-                    label: '破産判定ライン',
+                    label: '赤：破産判定ライン',
                     data: Array(path.length).fill(bankruptThreshold),
                     borderColor: '#f43f5e',
                     borderWidth: 1.5,
@@ -565,16 +606,14 @@
             document.getElementById('tradeProgressText').innerText = `${path.length - 1} / ${inputs.tradeCount.value} トレード`;
         }
 
-        // 1トレード送りボタン押下時の処理（ログ・チャート・KPI連動修正）
         function stepForward() {
             stopAutoPlay();
             document.getElementById('montePanel').classList.add('hidden');
             document.getElementById('singleLogPanel').classList.remove('hidden');
 
-            const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const capital = parseCapitalValue() || 1000000;
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
 
-            // 未実行または最終ステップに達している場合は新規シミュレーションを生成してステップを初期化
             if (!singleSimulationResult || currentStep >= singleSimulationResult.totalExecuted) {
                 const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
                 const winRate = parseFloat(inputs.winRate.value);
@@ -601,7 +640,7 @@
                 stopAutoPlay();
             } else {
                 if (!singleSimulationResult || currentStep >= singleSimulationResult.totalExecuted) {
-                    const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+                    const capital = parseCapitalValue() || 1000000;
                     const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
                     const winRate = parseFloat(inputs.winRate.value);
                     const rrr = parseFloat(inputs.rrr.value);
@@ -616,7 +655,7 @@
                 autoPlayTimer = setInterval(() => {
                     if (currentStep < singleSimulationResult.totalExecuted) {
                         currentStep++;
-                        const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+                        const capital = parseCapitalValue() || 1000000;
                         const bankruptRate = parseFloat(inputs.bankruptRate.value);
                         const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
                         const slicedLogs = singleSimulationResult.logs.slice(0, currentStep);
@@ -639,7 +678,6 @@
             }
         }
 
-        // 1トレードログテーブル描画関数
         function renderTradeLogTable(logs) {
             const tbody = document.getElementById('tradeLogTableBody');
             document.getElementById('logCountBadge').innerText = `${logs.length}件`;
@@ -647,7 +685,7 @@
             if (logs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="p-6 text-center text-slate-500">
+                        <td colspan="5" class="p-6 text-center text-slate-500">
                             「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
                         </td>
                     </tr>
@@ -668,7 +706,6 @@
                             ${log.isWin ? 'WIN (勝ち)' : 'LOSS (負け)'}
                         </span>
                     </td>
-                    <td class="p-2.5 text-slate-400">${Math.round(log.riskAmount).toLocaleString()} 円</td>
                     <td class="p-2.5 font-bold ${log.pnlAmount >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
                         ${log.pnlAmount >= 0 ? '+' : ''}${Math.round(log.pnlAmount).toLocaleString()} 円
                     </td>
@@ -689,21 +726,28 @@
             }
         }
 
-        // 進行度に応じたリアルタイムKPI更新関数
         function updateProgressKPIs(stepCount) {
-            if (!singleSimulationResult) return;
-
-            const initialCapital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const initialCapital = parseCapitalValue() || 1000000;
             const bankruptRatePct = parseFloat(inputs.bankruptRate.value);
+            const targetWinRatePct = parseFloat(inputs.winRate.value);
             const bankruptThreshold = initialCapital * (1 - bankruptRatePct / 100);
 
-            if (stepCount === 0) {
+            const roiEl = document.getElementById('kpiRoi');
+            const multipleEl = document.getElementById('kpiMultiple');
+
+            if (stepCount === 0 || !singleSimulationResult) {
                 document.getElementById('kpiFinalEquity').innerText = `${Math.round(initialCapital).toLocaleString()} 円`;
-                document.getElementById('kpiRoi').innerText = '±0.0%';
+                roiEl.innerText = '±0.0%';
+                roiEl.className = 'text-[10px] text-slate-400';
+                multipleEl.innerText = '1.00倍';
+                multipleEl.className = 'text-[10px] text-slate-400 font-semibold mt-0.5';
+
                 document.getElementById('kpiWinRate').innerText = '0.0%';
-                document.getElementById('kpiWinCount').innerText = '0勝 0敗';
+                document.getElementById('kpiWinLossCount').innerText = '(0勝 0敗)';
+                document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${targetWinRatePct.toFixed(1)}%`;
                 document.getElementById('kpiPF').innerText = '0.00';
                 document.getElementById('kpiMaxDD').innerText = '0.0%';
+                document.getElementById('kpiMaxDDAmount').innerText = '0 円';
                 document.getElementById('kpiBankruptStatus').innerText = '未到達 (正常)';
                 document.getElementById('kpiBankruptStatus').className = 'text-sm font-bold text-emerald-400 mt-1';
                 return;
@@ -713,11 +757,13 @@
             const currentEquity = activeLogs[activeLogs.length - 1].equityAfter;
             const pnl = currentEquity - initialCapital;
             const roi = (pnl / initialCapital) * 100;
+            const multiple = initialCapital > 0 ? (currentEquity / initialCapital) : 0;
 
             let wins = 0;
             let totalWinAmt = 0;
             let totalLossAmt = 0;
             let maxDD = 0;
+            let maxDDAmount = 0;
             let peak = initialCapital;
             let isBankrupt = false;
 
@@ -730,8 +776,12 @@
                 }
 
                 if (log.equityAfter > peak) peak = log.equityAfter;
-                const dd = peak > 0 ? (peak - log.equityAfter) / peak : 0;
-                if (dd > maxDD) maxDD = dd;
+                const ddAmt = peak - log.equityAfter;
+                const dd = peak > 0 ? ddAmt / peak : 0;
+                if (dd > maxDD) {
+                    maxDD = dd;
+                    maxDDAmount = ddAmt;
+                }
 
                 if (log.equityAfter <= bankruptThreshold) isBankrupt = true;
             });
@@ -740,11 +790,33 @@
             const pf = totalLossAmt > 0 ? (totalWinAmt / totalLossAmt) : (totalWinAmt > 0 ? 999 : 0);
 
             document.getElementById('kpiFinalEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
-            document.getElementById('kpiRoi').innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+            
+            // ROI (〇〇%) のプラス・マイナスカラー動的設定
+            roiEl.innerText = `${pnl >= 0 ? '+' : ''}${roi.toFixed(1)}% (${Math.round(pnl).toLocaleString()}円)`;
+            if (pnl > 0) {
+                roiEl.className = 'text-[10px] text-blue-400';
+            } else if (pnl < 0) {
+                roiEl.className = 'text-[10px] text-rose-400';
+            } else {
+                roiEl.className = 'text-[10px] text-slate-400';
+            }
+
+            // 資産倍率 (〇〇倍) のプラス・マイナスカラー動的設定
+            multipleEl.innerText = `${multiple.toFixed(2)}倍`;
+            if (multiple > 1.0) {
+                multipleEl.className = 'text-[10px] text-blue-400 font-semibold mt-0.5';
+            } else if (multiple < 1.0) {
+                multipleEl.className = 'text-[10px] text-rose-400 font-semibold mt-0.5';
+            } else {
+                multipleEl.className = 'text-[10px] text-slate-400 font-semibold mt-0.5';
+            }
+
             document.getElementById('kpiWinRate').innerText = `${winRate.toFixed(1)}%`;
-            document.getElementById('kpiWinCount').innerText = `${wins}勝 ${stepCount - wins}敗`;
+            document.getElementById('kpiWinLossCount').innerText = `(${wins}勝 ${stepCount - wins}敗)`;
+            document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${targetWinRatePct.toFixed(1)}%`;
             document.getElementById('kpiPF').innerText = pf.toFixed(2);
             document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
+            document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmount).toLocaleString()} 円`;
 
             const statusEl = document.getElementById('kpiBankruptStatus');
             if (isBankrupt) {
@@ -757,13 +829,12 @@
             document.getElementById('kpiBankruptLine').innerText = `閾値 ${bankruptRatePct.toFixed(0)}%`;
         }
 
-        // モンテカルロ試行実行
         function runMonteCarlo() {
             stopAutoPlay();
             document.getElementById('singleLogPanel').classList.add('hidden');
             document.getElementById('montePanel').classList.remove('hidden');
 
-            const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const capital = parseCapitalValue() || 1000000;
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
@@ -807,7 +878,7 @@
 
             const bankruptThreshold = capital * (1 - bankruptRate / 100);
             chart.data.datasets.push({
-                label: '破産判定ライン',
+                label: '赤：破産判定ライン',
                 data: Array(count + 1).fill(bankruptThreshold),
                 borderColor: '#f43f5e',
                 borderWidth: 2,
@@ -856,7 +927,7 @@
         }
 
         function renderMonteTable() {
-            const capital = parseFloat(inputs.initialCapital.value) || 1000000;
+            const capital = parseCapitalValue() || 1000000;
             const tbody = document.getElementById('monteTableBody');
             tbody.innerHTML = '';
 
@@ -907,7 +978,7 @@
         function resetAll() {
             stopAutoPlay();
             setMode(true);
-            inputs.initialCapital.value = 1000000;
+            inputs.initialCapital.value = '1,000,000';
             inputs.riskPercent.value = 2.0;
             inputs.winRate.value = 60;
             inputs.rrr.value = 1.00;
@@ -928,11 +999,19 @@
             document.getElementById('singleLogPanel').classList.remove('hidden');
 
             document.getElementById('kpiFinalEquity').innerText = '1,000,000 円';
-            document.getElementById('kpiRoi').innerText = '±0.0%';
+            const roiEl = document.getElementById('kpiRoi');
+            roiEl.innerText = '±0.0%';
+            roiEl.className = 'text-[10px] text-slate-400';
+            const multipleEl = document.getElementById('kpiMultiple');
+            multipleEl.innerText = '1.00倍';
+            multipleEl.className = 'text-[10px] text-slate-400 font-semibold mt-0.5';
+
             document.getElementById('kpiWinRate').innerText = '0.0%';
-            document.getElementById('kpiWinCount').innerText = '0勝 0敗';
+            document.getElementById('kpiWinLossCount').innerText = '(0勝 0敗)';
+            document.getElementById('kpiTheoreticalWinRate').innerText = '理論: 60.0%';
             document.getElementById('kpiPF').innerText = '0.00';
             document.getElementById('kpiMaxDD').innerText = '0.0%';
+            document.getElementById('kpiMaxDDAmount').innerText = '0 円';
             document.getElementById('kpiBankruptStatus').innerText = '判定なし';
             document.getElementById('kpiBankruptStatus').className = 'text-sm font-bold text-emerald-400 mt-1';
             document.getElementById('tradeProgressText').innerText = '0 / 500 トレード';
