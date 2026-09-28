@@ -220,12 +220,12 @@
                     <div class="text-[11px] text-slate-400">実績勝率</div>
                     <div id="kpiWinRate" class="text-sm font-bold text-slate-100 mt-1">0.0%</div>
                     <div id="kpiWinLossCount" class="text-[10px] text-slate-300 font-semibold mt-0.5">(0勝 0敗)</div>
-                    <div id="kpiTheoreticalWinRate" class="text-[10px] text-slate-400">理論: 60.0%</div>
+                    <div id="kpiTheoreticalWinRate" class="text-[10px] text-slate-400">理論値勝率: 60.0%</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-amber-500">
                     <div class="text-[11px] text-slate-400">実績PF</div>
                     <div id="kpiPF" class="text-sm font-bold text-slate-100 mt-1">0.00</div>
-                    <div id="kpiTheoreticalPF" class="text-[10px] text-slate-400">理論PF: 1.50</div>
+                    <div id="kpiTheoreticalPF" class="text-[10px] text-slate-400">理論値PF: 1.50</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500">
                     <div class="text-[11px] text-slate-400">最大DD</div>
@@ -448,13 +448,13 @@
 
             const tPF = calculateTheoreticalPF(winRate, rrr);
             displays.theoryPF.innerText = tPF.toFixed(2);
-            document.getElementById('kpiTheoreticalPF').innerText = `理論PF: ${tPF.toFixed(2)}`;
+            document.getElementById('kpiTheoreticalPF').innerText = `理論値PF: ${tPF.toFixed(2)}`;
 
             const balsara = calculateBalsaraBankruptcy(winRate, rrr, riskPct, bankruptRate);
             displays.balsaraRate.innerText = `${balsara.toFixed(1)}%`;
 
             // 理論勝率の表示更新
-            document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${winRate.toFixed(1)}%`;
+            document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${winRate.toFixed(1)}%`;
             if (!singleSimulationResult || currentStep === 0) {
                 document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
             } else {
@@ -746,7 +746,7 @@
 
                 document.getElementById('kpiWinRate').innerText = '0.0%';
                 document.getElementById('kpiWinLossCount').innerText = '(0勝 0敗)';
-                document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${targetWinRatePct.toFixed(1)}%`;
+                document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${targetWinRatePct.toFixed(1)}%`;
                 document.getElementById('kpiPF').innerText = '0.00';
                 document.getElementById('kpiMaxDD').innerText = '0.0%';
                 document.getElementById('kpiMaxDDAmount').innerText = '0 円';
@@ -815,7 +815,7 @@
 
             document.getElementById('kpiWinRate').innerText = `${winRate.toFixed(1)}%`;
             document.getElementById('kpiWinLossCount').innerText = `(${wins}勝 ${stepCount - wins}敗)`;
-            document.getElementById('kpiTheoreticalWinRate').innerText = `理論: ${targetWinRatePct.toFixed(1)}%`;
+            document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${targetWinRatePct.toFixed(1)}%`;
             document.getElementById('kpiPF').innerText = pf.toFixed(2);
             document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
             document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmount).toLocaleString()} 円`;
@@ -1010,7 +1010,7 @@
 
             document.getElementById('kpiWinRate').innerText = '0.0%';
             document.getElementById('kpiWinLossCount').innerText = '(0勝 0敗)';
-            document.getElementById('kpiTheoreticalWinRate').innerText = '理論: 60.0%';
+            document.getElementById('kpiTheoreticalWinRate').innerText = '理論値勝率: 60.0%';
             document.getElementById('kpiPF').innerText = '0.00';
             document.getElementById('kpiMaxDD').innerText = '0.0%';
             document.getElementById('kpiMaxDDAmount').innerText = '0 円';
