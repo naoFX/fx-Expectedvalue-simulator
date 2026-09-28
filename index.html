@@ -853,6 +853,7 @@
             let bankruptCount = 0;
             let sumFinalEquity = 0;
             let sumMaxDD = 0;
+            let sumPF = 0;
             const equities = [];
 
             for (let i = 0; i < numRuns; i++) {
@@ -864,6 +865,7 @@
                 if (res.isBankrupt) bankruptCount++;
                 sumFinalEquity += res.finalEquity;
                 sumMaxDD += res.maxDD;
+                sumPF += res.pf;
                 equities.push(res.finalEquity);
 
                 if (i < 50) {
@@ -891,35 +893,40 @@
 
             chart.update();
 
-            equities.sort((a, b) => a - b);
-            const medianEquity = equities[Math.floor(equities.length / 2)];
             const avgEquity = sumFinalEquity / numRuns;
             const bankruptPercent = (bankruptCount / numRuns) * 100;
             const avgMaxDD = (sumMaxDD / numRuns) * 100;
+            const avgPF = sumPF / numRuns;
 
-            renderMonteSummary(bankruptPercent, avgEquity, medianEquity, avgMaxDD, capital);
+            renderMonteSummary(bankruptPercent, bankruptCount, numRuns, avgEquity, avgPF, avgMaxDD, capital);
             renderMonteTable();
         }
 
-        function renderMonteSummary(bankruptPercent, avgEquity, medianEquity, avgMaxDD, capital) {
+        function renderMonteSummary(bankruptPercent, bankruptCount, numRuns, avgEquity, avgPF, avgMaxDD, capital) {
             const container = document.getElementById('monteSummaryCards');
             const avgPnl = avgEquity - capital;
+
+            let pnlColorClass = 'text-slate-100';
+            if (avgPnl < 0) {
+                pnlColorClass = 'text-rose-400';
+            } else if (avgPnl > 0) {
+                pnlColorClass = 'text-blue-400';
+            }
 
             container.innerHTML = `
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                     <div class="text-[10px] text-slate-400">実測破産率</div>
                     <div class="text-sm font-bold ${bankruptPercent > 0 ? 'text-rose-400' : 'text-emerald-400'} mt-0.5">
-                        ${bankruptPercent.toFixed(1)}%
+                        ${bankruptPercent.toFixed(1)}% (${bankruptCount}/${numRuns})
                     </div>
                 </div>
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">平均最終残高</div>
-                    <div class="text-sm font-bold text-slate-100 mt-0.5">${Math.round(avgEquity).toLocaleString()} 円</div>
-                    <div class="text-[9px] text-slate-400">${avgPnl >= 0 ? '+' : ''}${Math.round(avgPnl).toLocaleString()}円</div>
+                    <div class="text-[10px] text-slate-400">平均損益</div>
+                    <div class="text-sm font-bold ${pnlColorClass} mt-0.5">${avgPnl >= 0 ? '+' : ''}${Math.round(avgPnl).toLocaleString()} 円</div>
                 </div>
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">中央値残高</div>
-                    <div class="text-sm font-bold text-slate-100 mt-0.5">${Math.round(medianEquity).toLocaleString()} 円</div>
+                    <div class="text-[10px] text-slate-400">平均PF</div>
+                    <div class="text-sm font-bold text-slate-100 mt-0.5">${avgPF.toFixed(2)}</div>
                 </div>
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                     <div class="text-[10px] text-slate-400">平均最大DD</div>
