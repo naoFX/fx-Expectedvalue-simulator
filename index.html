@@ -106,10 +106,16 @@
                     <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
                 </div>
 
-                <!-- 理論値PF (リスクリワード比の下に配置) -->
-                <div class="flex justify-between items-center bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800 text-xs">
-                    <span class="text-slate-400">理論値PF</span>
-                    <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
+                <!-- 理論値PF と 1トレードあたり期待値を同じ枠に統合 -->
+                <div class="bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800 space-y-1.5 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">理論値PF</span>
+                        <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
+                        <span class="text-slate-400">1トレードあたり期待値</span>
+                        <span id="theoryExpectancy" class="font-bold text-emerald-400">+0.00%</span>
+                    </div>
                 </div>
 
                 <!-- Bankruptcy Threshold Slider -->
@@ -142,7 +148,7 @@
                 <!-- Action Buttons -->
                 <div class="space-y-2 pt-2 border-t border-slate-700/60">
                     <button id="btnRunSingle" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center space-x-2">
-                        <span>▶ 単一シミュレーション実行</span>
+                        <span>▶ シミュレーション一括実行</span>
                     </button>
                     
                     <div class="grid grid-cols-2 gap-2">
@@ -152,22 +158,6 @@
                         <button id="btnAutoPlay" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
                             ⏯ 自動再生
                         </button>
-                    </div>
-
-                    <!-- Monte Carlo Configuration -->
-                    <div class="pt-2">
-                        <div class="flex items-center space-x-2">
-                            <select id="monteRuns" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                                <option value="10">10 試行</option>
-                                <option value="50">50 試行</option>
-                                <option value="100" selected>100 試行</option>
-                                <option value="500">500 試行</option>
-                                <option value="1000">1000 試行</option>
-                            </select>
-                            <button id="btnRunMonte" class="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold rounded-lg text-xs transition">
-                                🎲 モンテカルロ試行を実行
-                            </button>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -229,19 +219,19 @@
                     <div id="kpiWinLossCount" class="text-[10px] text-slate-300 font-semibold mt-0.5">(0勝 0敗)</div>
                     <div id="kpiTheoreticalWinRate" class="text-[10px] text-slate-400">理論値勝率: 60.0%</div>
                 </div>
-                <!-- 実績PFカード（ここに連勝/連敗を移行） -->
+                <!-- 実績PFカード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-amber-500">
                     <div class="text-[11px] text-slate-400">実績PF</div>
                     <div id="kpiPF" class="text-sm font-bold text-slate-100 mt-1">0.00</div>
                     <div id="kpiTheoreticalPF" class="text-[10px] text-slate-400">理論値PF: 1.50</div>
-                    <div id="kpiStreak" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大連勝0／連敗0</div>
                 </div>
-                <!-- 最大DDカード（ここに期間情報を追記） -->
+                <!-- 最大DDカード（ここに連勝/連敗を移動） -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500">
                     <div class="text-[11px] text-slate-400">最大DD</div>
                     <div id="kpiMaxDD" class="text-sm font-bold text-rose-400 mt-1">0.0%</div>
                     <div id="kpiMaxDDAmount" class="text-[10px] text-rose-400 font-semibold hidden">0 円</div>
-                    <div id="kpiDDPeriod" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大DD期間0回<br>回復期間0回</div>
+                    <div id="kpiDDPeriod" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大DD期間0回</div>
+                    <div id="kpiStreak" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大連勝0／連敗0</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
                     <div class="text-[11px] text-slate-400">破産判定</div>
@@ -281,38 +271,6 @@
                                     「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
                                 </td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Monte Carlo Results Table & Summary -->
-            <div id="montePanel" class="glass-panel p-6 rounded-2xl hidden space-y-5">
-                <div class="border-b border-slate-700/80 pb-3 flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-300">
-                        🎲 モンテカルロシミュレーション結果 (<span id="monteRunCountText">100</span>試行)
-                    </h3>
-                    <span class="text-xs text-slate-400">ヘッダー押下でソート可</span>
-                </div>
-
-                <!-- Monte Carlo Summary Metrics -->
-                <div id="monteSummaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                </div>
-
-                <div class="max-h-96 overflow-y-auto pr-1">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-800/90 sticky top-0 uppercase text-slate-400 border-b border-slate-700">
-                            <tr>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('id')">試行 <span id="sort-id"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('finalEquity')">最終残高 <span id="sort-finalEquity"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('pnl')">損益額 / ROI <span id="sort-pnl"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('winRate')">実績勝率 <span id="sort-winRate"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('pf')">実績PF <span id="sort-pf"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('maxDD')">最大DD <span id="sort-maxDD"></span></th>
-                                <th class="p-2.5 sort-header" onclick="sortMonteTable('isBankrupt')">破産判定 <span id="sort-isBankrupt"></span></th>
-                            </tr>
-                        </thead>
-                        <tbody id="monteTableBody" class="divide-y divide-slate-800/50">
                         </tbody>
                     </table>
                 </div>
@@ -392,10 +350,6 @@
                     const bankruptRate = parseFloat(inputs.bankruptRate.value);
                     const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
                     renderSingleChart(slicedPath, capital, bankruptRate, singleSimulationResult.maxDDStartIndex, singleSimulationResult.maxDDEndIndex);
-                } else if (!document.getElementById('montePanel').classList.contains('hidden') && montePathsData.length > 0) {
-                    const capital = parseCapitalValue() || 1000000;
-                    const bankruptRate = parseFloat(inputs.bankruptRate.value);
-                    renderMonteChart(capital, bankruptRate);
                 } else {
                     const capital = parseCapitalValue() || 1000000;
                     const bankruptRate = parseFloat(inputs.bankruptRate.value);
@@ -409,7 +363,6 @@
             document.getElementById('btnRunSingle').addEventListener('click', runSingleSimulation);
             document.getElementById('btnStep').addEventListener('click', stepForward);
             document.getElementById('btnAutoPlay').addEventListener('click', toggleAutoPlay);
-            document.getElementById('btnRunMonte').addEventListener('click', runMonteCarlo);
             document.getElementById('btnReset').addEventListener('click', resetAll);
             document.getElementById('btnToggleLogOrder').addEventListener('click', toggleLogOrder);
         }
@@ -439,6 +392,7 @@
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
+            const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
 
             displays.winRateVal.innerText = `${winRate.toFixed(1)}%`;
             displays.rrrVal.innerText = rrr.toFixed(2);
@@ -452,6 +406,15 @@
             const tPF = calculateTheoreticalPF(winRate, rrr);
             displays.theoryPF.innerText = tPF.toFixed(2);
             document.getElementById('kpiTheoreticalPF').innerText = `理論値PF: ${tPF.toFixed(2)}`;
+
+            // 1トレードあたり期待値 (%) の計算: 期待値(R) = (勝率 * RRR) - (敗率 * 1) -> 資金リスクに対する比率 % = 期待値(R) * riskPct
+            const w = winRate / 100;
+            const l = 1 - w;
+            const expectancyR = (w * rrr) - l;
+            const expectancyPct = expectancyR * riskPct;
+            const expEl = document.getElementById('theoryExpectancy');
+            expEl.innerText = `${expectancyPct >= 0 ? '+' : ''}${expectancyPct.toFixed(2)}%`;
+            expEl.className = `font-bold ${expectancyPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
 
             // 理論勝率の表示更新
             document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${winRate.toFixed(1)}%`;
@@ -489,13 +452,13 @@
             let totalWinAmount = 0;
             let totalLossAmount = 0;
             let peak = equity;
+            let peakIndex = 0;
             let maxDD = 0;
             let maxDDAmount = 0;
             let maxDDStartIndex = 0;
             let maxDDEndIndex = 0;
-
-            let currentPeak = equity;
-            let currentPeakIndex = 0;
+            let maxDDPeakValue = equity;
+            let maxDDFullPeriod = 0; // ピークから回復までの全トレード数
 
             let curWinStreak = 0, maxWinStreak = 0;
             let curLossStreak = 0, maxLossStreak = 0;
@@ -528,9 +491,9 @@
                     if (curLossStreak > maxLossStreak) maxLossStreak = curLossStreak;
                 }
 
-                if (equity > currentPeak) {
-                    currentPeak = equity;
-                    currentPeakIndex = i + 1;
+                if (equity > peak) {
+                    peak = equity;
+                    peakIndex = i + 1;
                 }
 
                 if (equity <= bankruptThreshold) {
@@ -540,13 +503,14 @@
 
                 path.push(equity);
 
-                const currentDDVal = currentPeak - equity;
-                const currentDD = currentPeak > 0 ? currentDDVal / currentPeak : 0;
+                const currentDDVal = peak - equity;
+                const currentDD = peak > 0 ? currentDDVal / peak : 0;
                 if (currentDD > maxDD) {
                     maxDD = currentDD;
                     maxDDAmount = currentDDVal;
-                    maxDDStartIndex = currentPeakIndex;
+                    maxDDStartIndex = peakIndex;
                     maxDDEndIndex = i + 1;
+                    maxDDPeakValue = peak;
                 }
 
                 logs.push({
@@ -557,6 +521,23 @@
                     equityAfter: equity,
                     currentDD
                 });
+            }
+
+            // ピーク発生時から回復（またはシミュレーション終了）までの全期間（ピークの起点を含めず、最大下落・回復までにかかったトレード数）
+            if (maxDDStartIndex > 0) {
+                let recoveryIndex = maxDDEndIndex;
+                let recovered = false;
+                for (let j = maxDDEndIndex; j < path.length; j++) {
+                    if (path[j] >= maxDDPeakValue) {
+                        recoveryIndex = j;
+                        recovered = true;
+                        break;
+                    }
+                }
+                if (!recovered) {
+                    recoveryIndex = path.length - 1;
+                }
+                maxDDFullPeriod = recoveryIndex - maxDDStartIndex + 1;
             }
 
             const totalExecuted = logs.length;
@@ -575,6 +556,8 @@
                 maxDDAmount,
                 maxDDStartIndex,
                 maxDDEndIndex,
+                maxDDPeakValue,
+                maxDDFullPeriod,
                 maxWinStreak,
                 maxLossStreak,
                 finalEquity: equity,
@@ -584,8 +567,6 @@
 
         function runSingleSimulation() {
             stopAutoPlay();
-            document.getElementById('montePanel').classList.add('hidden');
-            document.getElementById('singleLogPanel').classList.remove('hidden');
 
             const capital = parseCapitalValue() || 1000000;
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
@@ -597,7 +578,10 @@
             singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
             currentStep = singleSimulationResult.totalExecuted;
 
-            renderSingleChart(singleSimulationResult.path, capital, bankruptRate, singleSimulationResult.maxDDStartIndex, singleSimulationResult.maxDDEndIndex);
+            const currentSubLogs = singleSimulationResult.logs.slice(0, currentStep);
+            const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
+
+            renderSingleChart(singleSimulationResult.path.slice(0, currentStep + 1), capital, bankruptRate, subDDInfo.maxDDStartIndex, subDDInfo.maxDDEndIndex);
             updateProgressKPIs(currentStep);
             renderTradeLogTable(singleSimulationResult.logs);
         }
@@ -606,6 +590,23 @@
             chart.data.labels = path.map((_, i) => i);
             const bankruptThreshold = capital * (1 - bankruptRatePct / 100);
             const showBankrupt = toggleBankrupt.checked;
+
+            // グラフの最大DD区間（ピークから回復まで）を正確に特定するための終了インデックス（リカバリー地点）を計算
+            let recoveryIndex = maxDDEnd;
+            if (maxDDStart > 0 && maxDDStart < path.length) {
+                let peakVal = path[maxDDStart - 1];
+                let recovered = false;
+                for (let j = maxDDEnd; j < path.length; j++) {
+                    if (path[j] >= peakVal) {
+                        recoveryIndex = j;
+                        recovered = true;
+                        break;
+                    }
+                }
+                if (!recovered) {
+                    recoveryIndex = path.length - 1;
+                }
+            }
 
             const datasets = [
                 {
@@ -617,7 +618,7 @@
                     fill: false,
                     segment: {
                         borderColor: ctx => {
-                            if (maxDDStart > 0 && maxDDEnd > 0 && ctx.p0DataIndex >= maxDDStart - 1 && ctx.p1DataIndex <= maxDDEnd) {
+                            if (maxDDStart > 0 && ctx.p0DataIndex >= maxDDStart - 1 && ctx.p1DataIndex <= recoveryIndex) {
                                 return '#f43f5e';
                             }
                             return '#3b82f6';
@@ -659,9 +660,6 @@
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
 
-            document.getElementById('montePanel').classList.add('hidden');
-            document.getElementById('singleLogPanel').classList.remove('hidden');
-
             if (!singleSimulationResult || singleSimulationResult.path.length - 1 !== count || currentStep >= count) {
                 singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
                 currentStep = 0;
@@ -671,8 +669,11 @@
                 currentStep++;
             }
 
+            const currentSubLogs = singleSimulationResult.logs.slice(0, currentStep);
+            const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
             const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
-            renderSingleChart(slicedPath, capital, bankruptRate, singleSimulationResult.maxDDStartIndex, singleSimulationResult.maxDDEndIndex);
+
+            renderSingleChart(slicedPath, capital, bankruptRate, subDDInfo.maxDDStartIndex, subDDInfo.maxDDEndIndex);
             updateProgressKPIs(currentStep);
             renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
         }
@@ -728,7 +729,7 @@
                 document.getElementById('kpiPF').innerText = `0.00`;
                 document.getElementById('kpiMaxDD').innerText = `0.0%`;
                 document.getElementById('kpiMaxDDAmount').innerText = `0 円`;
-                document.getElementById('kpiDDPeriod').innerText = `最大DD期間0回<br>回復期間0回`;
+                document.getElementById('kpiDDPeriod').innerText = `最大DD期間0回`;
                 document.getElementById('kpiStreak').innerText = `最大連勝0／連敗0`;
                 document.getElementById('kpiBankruptStatus').innerText = `判定なし`;
                 document.getElementById('kpiBankruptStatus').className = `text-sm font-bold text-emerald-400 mt-1`;
@@ -755,19 +756,18 @@
             let winAmt = 0;
             let lossAmt = 0;
             let peak = capital;
+            let peakIndex = 0;
             let maxDD = 0;
             let maxDDAmt = 0;
+            let maxDDStartIdx = 0;
+            let maxDDEndIdx = 0;
+            let maxDDPeakVal = capital;
 
             let curW = 0, maxW = 0;
             let curL = 0, maxL = 0;
             let isBankrupt = false;
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const bankruptThreshold = capital * (1 - bankruptRate / 100);
-
-            // DD期間の計算用
-            let peakIndex = 0;
-            let maxDDStartIdx = 0;
-            let maxDDEndIdx = 0;
 
             currentLogs.forEach((log, idx) => {
                 const tradeIdx = idx + 1;
@@ -793,6 +793,7 @@
                     maxDDAmt = ddVal;
                     maxDDStartIdx = peakIndex;
                     maxDDEndIdx = tradeIdx;
+                    maxDDPeakVal = peak;
                 }
 
                 if (log.equityAfter <= bankruptThreshold) {
@@ -800,21 +801,23 @@
                 }
             });
 
-            const ddPeriodCount = maxDDStartIdx > 0 ? (maxDDEndIdx - maxDDStartIdx) : 0;
-            // 回復期間：最大DDの底からピークを回復するまでの期間
-            let recoveryPeriodCount = 0;
-            if (maxDDEndIdx > 0) {
+            // 現在のステップ時点における、ピークから回復（または現在ステップまで）までの全トレード数
+            let currentFullPeriod = 0;
+            if (maxDDStartIdx > 0) {
+                let recoveryIndex = maxDDEndIdx;
                 let recovered = false;
-                for (let j = maxDDEndIdx; j < currentLogs.length; j++) {
-                    recoveryPeriodCount++;
-                    if (currentLogs[j].equityAfter >= peak) {
+                const currentPathSlice = [capital, ...currentLogs.map(l => l.equityAfter)];
+                for (let j = maxDDEndIdx; j < currentPathSlice.length; j++) {
+                    if (currentPathSlice[j] >= maxDDPeakVal) {
+                        recoveryIndex = j;
                         recovered = true;
                         break;
                     }
                 }
                 if (!recovered) {
-                    recoveryPeriodCount = currentLogs.length - maxDDEndIdx;
+                    recoveryIndex = currentPathSlice.length - 1;
                 }
+                currentFullPeriod = recoveryIndex - maxDDStartIdx + 1;
             }
 
             const winRatePct = (wins / step) * 100;
@@ -826,7 +829,7 @@
             document.getElementById('kpiStreak').innerText = `最大連勝${maxW}／連敗${maxL}`;
             document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
             document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmt).toLocaleString()} 円`;
-            document.getElementById('kpiDDPeriod').innerHTML = `最大DD期間${ddPeriodCount}回<br>回復期間${recoveryPeriodCount}回`;
+            document.getElementById('kpiDDPeriod').innerText = `最大DD期間${currentFullPeriod}回`;
 
             const bankruptEl = document.getElementById('kpiBankruptStatus');
             if (isBankrupt) {
@@ -836,6 +839,32 @@
                 bankruptEl.innerText = `生存 (正常)`;
                 bankruptEl.className = `text-sm font-bold text-emerald-400 mt-1`;
             }
+        }
+
+        // 進行中のログから現在の最大DD期間を抽出するヘルパー関数
+        function calculateCurrentMaxDD(currentLogs, capital) {
+            let peak = capital;
+            let peakIndex = 0;
+            let maxDD = 0;
+            let maxDDStartIndex = 0;
+            let maxDDEndIndex = 0;
+
+            currentLogs.forEach((log, idx) => {
+                const tradeIdx = idx + 1;
+                if (log.equityAfter > peak) {
+                    peak = log.equityAfter;
+                    peakIndex = tradeIdx;
+                }
+                const ddVal = peak - log.equityAfter;
+                const ddPct = peak > 0 ? ddVal / peak : 0;
+                if (ddPct > maxDD) {
+                    maxDD = ddPct;
+                    maxDDStartIndex = peakIndex;
+                    maxDDEndIndex = tradeIdx;
+                }
+            });
+
+            return { maxDDStartIndex, maxDDEndIndex };
         }
 
         function renderTradeLogTable(logs) {
@@ -883,192 +912,10 @@
             }
         }
 
-        function runMonteCarlo() {
-            stopAutoPlay();
-            document.getElementById('singleLogPanel').classList.add('hidden');
-            document.getElementById('montePanel').classList.remove('hidden');
-
-            const runs = parseInt(document.getElementById('monteRuns').value);
-            document.getElementById('monteRunCountText').innerText = runs;
-
-            const capital = parseCapitalValue() || 1000000;
-            const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
-            const winRate = parseFloat(inputs.winRate.value);
-            const rrr = parseFloat(inputs.rrr.value);
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
-            const count = parseInt(inputs.tradeCount.value);
-
-            montePathsData = [];
-            let totalBankrupts = 0;
-            let sumFinalEquity = 0;
-            let maxFinalEquity = -Infinity;
-            let minFinalEquity = Infinity;
-
-            for (let i = 0; i < runs; i++) {
-                const res = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
-                res.id = i + 1;
-                res.pnl = res.finalEquity - capital;
-                res.roi = (res.pnl / capital) * 100;
-
-                if (res.isBankrupt) totalBankrupts++;
-                sumFinalEquity += res.finalEquity;
-                if (res.finalEquity > maxFinalEquity) maxFinalEquity = res.finalEquity;
-                if (res.finalEquity < minFinalEquity) minFinalEquity = res.finalEquity;
-
-                montePathsData.push(res);
-            }
-
-            const avgFinalEquity = sumFinalEquity / runs;
-            const bankruptRatePct = (totalBankrupts / runs) * 100;
-
-            renderMonteSummaryCards(runs, avgFinalEquity, capital, bankruptRatePct, maxFinalEquity, minFinalEquity);
-            renderMonteChart(capital, bankruptRate);
-            sortMonteTable('id', true);
-        }
-
-        function renderMonteSummaryCards(runs, avgEquity, capital, bankruptPct, maxEq, minEq) {
-            const container = document.getElementById('monteSummaryCards');
-            const avgPnl = avgEquity - capital;
-            const avgRoi = (avgPnl / capital) * 100;
-
-            container.innerHTML = `
-                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">平均最終資産</div>
-                    <div class="text-xs font-bold text-slate-100 mt-0.5">${Math.round(avgEquity).toLocaleString()} 円</div>
-                    <div class="text-[10px] ${avgPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-semibold mt-0.5">
-                        ${avgPnl >= 0 ? '+' : ''}${avgRoi.toFixed(1)}%
-                    </div>
-                </div>
-                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">試行破産発生率</div>
-                    <div class="text-xs font-bold ${bankruptPct > 0 ? 'text-rose-400' : 'text-emerald-400'} mt-0.5">${bankruptPct.toFixed(1)}%</div>
-                    <div class="text-[10px] text-slate-500 mt-0.5">${runs} 試行中</div>
-                </div>
-                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">最高達成資産</div>
-                    <div class="text-xs font-bold text-emerald-400 mt-0.5">${Math.round(maxEq).toLocaleString()} 円</div>
-                </div>
-                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">最低到達資産</div>
-                    <div class="text-xs font-bold text-rose-400 mt-0.5">${Math.round(minEq).toLocaleString()} 円</div>
-                </div>
-            `;
-        }
-
-        function renderMonteChart(capital, bankruptRatePct) {
-            const displayCount = Math.min(20, montePathsData.length);
-            const count = parseInt(inputs.tradeCount.value);
-            const bankruptThreshold = capital * (1 - bankruptRatePct / 100);
-            const showBankrupt = toggleBankrupt.checked;
-
-            chart.data.labels = Array.from({ length: count + 1 }, (_, i) => i);
-
-            const datasets = [];
-
-            for (let i = 0; i < displayCount; i++) {
-                datasets.push({
-                    label: `試行 #${montePathsData[i].id}`,
-                    data: montePathsData[i].path,
-                    borderColor: colors[i % colors.length],
-                    borderWidth: 1.2,
-                    pointRadius: 0,
-                    fill: false
-                });
-            }
-
-            datasets.push({
-                label: '初期資金',
-                data: Array(count + 1).fill(capital),
-                borderColor: '#facc15',
-                borderWidth: 1.5,
-                borderDash: [4, 4],
-                pointRadius: 0,
-                fill: false
-            });
-
-            if (showBankrupt) {
-                datasets.push({
-                    label: '破産ライン',
-                    data: Array(count + 1).fill(bankruptThreshold),
-                    borderColor: '#f43f5e',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 0,
-                    fill: false
-                });
-            }
-
-            chart.data.datasets = datasets;
-            chart.update();
-        }
-
-        function sortMonteTable(key, forceAsc) {
-            if (forceAsc !== undefined) {
-                currentSort.asc = forceAsc;
-            } else if (currentSort.key === key) {
-                currentSort.asc = !currentSort.asc;
-            } else {
-                currentSort.key = key;
-                currentSort.asc = true;
-            }
-
-            ['id', 'finalEquity', 'pnl', 'winRate', 'pf', 'maxDD', 'isBankrupt'].forEach(k => {
-                const el = document.getElementById(`sort-${k}`);
-                if (el) el.innerText = '';
-            });
-
-            const arrow = currentSort.asc ? '▲' : '▼';
-            const sortEl = document.getElementById(`sort-${key}`);
-            if (sortEl) sortEl.innerText = arrow;
-
-            montePathsData.sort((a, b) => {
-                let valA = a[key];
-                let valB = b[key];
-
-                if (key === 'isBankrupt') {
-                    valA = a.isBankrupt ? 1 : 0;
-                    valB = b.isBankrupt ? 1 : 0;
-                }
-
-                if (valA < valB) return currentSort.asc ? -1 : 1;
-                if (valA > valB) return currentSort.asc ? 1 : -1;
-                return 0;
-            });
-
-            renderMonteTableBody();
-        }
-
-        function renderMonteTableBody() {
-            const tbody = document.getElementById('monteTableBody');
-            tbody.innerHTML = montePathsData.map(res => {
-                const pnlClass = res.pnl >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
-                const pnlSign = res.pnl >= 0 ? '+' : '';
-                const bankStatus = res.isBankrupt
-                    ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">破産</span>'
-                    : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">生存</span>';
-
-                return `
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-2.5 font-mono text-slate-400">#${res.id}</td>
-                        <td class="p-2.5 font-semibold text-slate-100">${Math.round(res.finalEquity).toLocaleString()} 円</td>
-                        <td class="p-2.5 ${pnlClass}">
-                            ${pnlSign}${Math.round(res.pnl).toLocaleString()} 円
-                            <span class="text-[10px] opacity-80 block">${pnlSign}${res.roi.toFixed(1)}%</span>
-                        </td>
-                        <td class="p-2.5 text-slate-300">${res.winRate.toFixed(1)}%</td>
-                        <td class="p-2.5 text-slate-300">${res.pf >= 999 ? '∞' : res.pf.toFixed(2)}</td>
-                        <td class="p-2.5 text-rose-400 font-mono">${(res.maxDD * 100).toFixed(1)}%</td>
-                        <td class="p-2.5">${bankStatus}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
         function resetAll() {
             stopAutoPlay();
             singleSimulationResult = null;
             currentStep = 0;
-            montePathsData = [];
 
             inputs.initialCapital.value = "1,000,000";
             inputs.riskPercent.value = "2.0";
@@ -1082,9 +929,6 @@
 
             setMode(true);
             updateControlDisplays();
-
-            document.getElementById('montePanel').classList.add('hidden');
-            document.getElementById('singleLogPanel').classList.remove('hidden');
 
             chart.data.labels = [];
             chart.data.datasets = [];
