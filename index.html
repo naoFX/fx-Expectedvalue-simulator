@@ -106,6 +106,12 @@
                     <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
                 </div>
 
+                <!-- 理論値PF (リスクリワード比の下に配置) -->
+                <div class="flex justify-between items-center bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800 text-xs">
+                    <span class="text-slate-400">理論値PF</span>
+                    <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
+                </div>
+
                 <!-- Bankruptcy Threshold Slider -->
                 <div>
                     <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
@@ -156,22 +162,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Theoretical Analytics Panel -->
-                <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5 text-xs">
-                    <div class="font-semibold text-slate-300 border-b border-slate-800 pb-1 flex justify-between items-center">
-                        <span>📊 理論分析指標</span>
-                        <span class="text-[10px] text-slate-500">バルサラ公式</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">理論値PF</span>
-                        <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">バルサラの破産確率</span>
-                        <span id="balsaraRate" class="font-bold text-rose-400">0.0%</span>
-                    </div>
-                </div>
             </section>
         </div>
 
@@ -209,16 +199,16 @@
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                <!-- 現在の資産カード（新規追加） -->
+                <!-- 現在の資産カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-cyan-500">
                     <div class="text-[11px] text-slate-400">現在の資産</div>
                     <div id="kpiCurrentEquity" class="text-sm font-bold text-slate-100 mt-1">1,000,000 円</div>
+                    <div id="kpiEquityMultiplier" class="text-[10px] text-emerald-400 font-semibold mt-0.5">(+0.0%／1.00倍)</div>
                 </div>
                 <!-- 損益カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-blue-500">
                     <div class="text-[11px] text-slate-400">損益</div>
                     <div id="kpiPnl" class="text-sm font-bold text-slate-100 mt-1">+0 円</div>
-                    <div id="kpiEquityMultiplier" class="text-[10px] text-cyan-400 font-semibold mt-0.5">(+0.0%／1.00倍)</div>
                 </div>
                 <!-- 実績勝率カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-emerald-500">
@@ -236,7 +226,7 @@
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500">
                     <div class="text-[11px] text-slate-400">最大DD</div>
                     <div id="kpiMaxDD" class="text-sm font-bold text-rose-400 mt-1">0.0%</div>
-                    <div id="kpiMaxDDAmount" class="text-[10px] text-slate-400">0 円</div>
+                    <div id="kpiMaxDDAmount" class="text-[10px] text-rose-400 font-semibold">0 円</div>
                     <div id="kpiStreak" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大連勝0／連敗0</div>
                 </div>
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
@@ -348,8 +338,7 @@
             bankruptRateVal: document.getElementById('bankruptRateVal'),
             bankruptAmount: document.getElementById('bankruptAmount'),
             tradeCountVal: document.getElementById('tradeCountVal'),
-            theoryPF: document.getElementById('theoryPF'),
-            balsaraRate: document.getElementById('balsaraRate')
+            theoryPF: document.getElementById('theoryPF')
         };
 
         // カンマ区切りの数値を数値型へ変換するヘルパー関数
@@ -408,40 +397,9 @@
             return (w * rrr) / (1 - w);
         }
 
-        function calculateBalsaraBankruptcy(winRatePct, rrr, riskPct, bankruptRatePct) {
-            const W = winRatePct / 100;
-            const L = 1 - W;
-            const R = rrr;
-            const EV = (W * R) - L;
-
-            if (EV <= 0) return 100.0;
-
-            const b = bankruptRatePct / 100;
-            const units = b / (riskPct / 100);
-            if (units <= 0) return 100.0;
-
-            let low = 0.0;
-            let high = 1.0;
-            let x = 0.5;
-
-            for (let i = 0; i < 40; i++) {
-                x = (low + high) / 2;
-                const val = W * Math.pow(x, 1 + R) + L - x;
-                if (val > 0) {
-                    high = x;
-                } else {
-                    low = x;
-                }
-            }
-
-            const prob = Math.pow(x, units) * 100;
-            return Math.min(100, Math.max(0, prob));
-        }
-
         function updateControlDisplays() {
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
-            const riskPct = parseFloat(inputs.riskPercent.value);
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
 
             displays.winRateVal.innerText = `${winRate.toFixed(1)}%`;
@@ -456,9 +414,6 @@
             const tPF = calculateTheoreticalPF(winRate, rrr);
             displays.theoryPF.innerText = tPF.toFixed(2);
             document.getElementById('kpiTheoreticalPF').innerText = `理論値PF: ${tPF.toFixed(2)}`;
-
-            const balsara = calculateBalsaraBankruptcy(winRate, rrr, riskPct, bankruptRate);
-            displays.balsaraRate.innerText = `${balsara.toFixed(1)}%`;
 
             // 理論勝率の表示更新
             document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${winRate.toFixed(1)}%`;
@@ -619,7 +574,7 @@
                     fill: false
                 },
                 {
-                    label: '破産判定',
+                    label: '破産ライン',
                     data: Array(path.length).fill(bankruptThreshold),
                     borderColor: '#f43f5e',
                     borderWidth: 1.5,
@@ -629,14 +584,9 @@
                 }
             ];
             chart.update();
-            document.getElementById('tradeProgressText').innerText = `${path.length - 1} / ${inputs.tradeCount.value} トレード`;
         }
 
         function stepForward() {
-            stopAutoPlay();
-            document.getElementById('montePanel').classList.add('hidden');
-            document.getElementById('singleLogPanel').classList.remove('hidden');
-
             const capital = parseCapitalValue() || 1000000;
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
@@ -644,52 +594,41 @@
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
 
-            if (!singleSimulationResult || currentStep >= count) {
+            document.getElementById('montePanel').classList.add('hidden');
+            document.getElementById('singleLogPanel').classList.remove('hidden');
+
+            if (!singleSimulationResult || singleSimulationResult.path.length - 1 !== count || currentStep >= count) {
                 singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
                 currentStep = 0;
             }
 
-            currentStep++;
-            const subPath = singleSimulationResult.path.slice(0, currentStep + 1);
-            const subLogs = singleSimulationResult.logs.slice(0, currentStep);
+            if (currentStep < count) {
+                currentStep++;
+            }
 
-            renderSingleChart(subPath, capital, bankruptRate);
+            const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
+            renderSingleChart(slicedPath, capital, bankruptRate);
             updateProgressKPIs(currentStep);
-            renderTradeLogTable(subLogs);
+            renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
         }
 
         function toggleAutoPlay() {
+            const btn = document.getElementById('btnAutoPlay');
             if (autoPlayTimer) {
                 stopAutoPlay();
             } else {
+                btn.innerText = '⏸ 一時停止';
+                btn.classList.add('bg-amber-600', 'border-amber-500');
+                btn.classList.remove('bg-slate-800');
+
                 const count = parseInt(inputs.tradeCount.value);
                 if (!singleSimulationResult || currentStep >= count) {
-                    const capital = parseCapitalValue() || 1000000;
-                    const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
-                    const winRate = parseFloat(inputs.winRate.value);
-                    const rrr = parseFloat(inputs.rrr.value);
-                    const bankruptRate = parseFloat(inputs.bankruptRate.value);
-
-                    singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
-                    currentStep = 0;
+                    stepForward();
                 }
-
-                document.getElementById('montePanel').classList.add('hidden');
-                document.getElementById('singleLogPanel').classList.remove('hidden');
-                document.getElementById('btnAutoPlay').innerText = '⏸ 一時停止';
-                document.getElementById('btnAutoPlay').classList.replace('bg-slate-800', 'bg-amber-600');
 
                 autoPlayTimer = setInterval(() => {
                     if (currentStep < count) {
-                        currentStep++;
-                        const capital = parseCapitalValue() || 1000000;
-                        const bankruptRate = parseFloat(inputs.bankruptRate.value);
-                        const subPath = singleSimulationResult.path.slice(0, currentStep + 1);
-                        const subLogs = singleSimulationResult.logs.slice(0, currentStep);
-
-                        renderSingleChart(subPath, capital, bankruptRate);
-                        updateProgressKPIs(currentStep);
-                        renderTradeLogTable(subLogs);
+                        stepForward();
                     } else {
                         stopAutoPlay();
                     }
@@ -703,87 +642,105 @@
                 autoPlayTimer = null;
             }
             const btn = document.getElementById('btnAutoPlay');
-            btn.innerText = '⏯ 自動再生';
-            btn.className = 'py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition';
+            if (btn) {
+                btn.innerText = '⏯ 自動再生';
+                btn.classList.remove('bg-amber-600', 'border-amber-500');
+                btn.classList.add('bg-slate-800');
+            }
         }
 
         function updateProgressKPIs(step) {
-            if (!singleSimulationResult || step === 0) return;
+            const count = parseInt(inputs.tradeCount.value);
+            document.getElementById('tradeProgressText').innerText = `${step} / ${count} トレード`;
+
+            if (!singleSimulationResult || step === 0) {
+                const capital = parseCapitalValue() || 1000000;
+                document.getElementById('kpiCurrentEquity').innerText = `${Math.round(capital).toLocaleString()} 円`;
+                document.getElementById('kpiEquityMultiplier').innerText = `(+0.0%／1.00倍)`;
+                document.getElementById('kpiPnl').innerText = `+0 円`;
+                document.getElementById('kpiWinRate').innerText = `0.0%`;
+                document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
+                document.getElementById('kpiPF').innerText = `0.00`;
+                document.getElementById('kpiMaxDD').innerText = `0.0%`;
+                document.getElementById('kpiMaxDDAmount').innerText = `0 円`;
+                document.getElementById('kpiStreak').innerText = `最大連勝0／連敗0`;
+                document.getElementById('kpiBankruptStatus').innerText = `判定なし`;
+                document.getElementById('kpiBankruptStatus').className = `text-sm font-bold text-emerald-400 mt-1`;
+                return;
+            }
 
             const capital = parseCapitalValue() || 1000000;
             const currentEquity = singleSimulationResult.path[step];
             const pnl = currentEquity - capital;
-            const pnlPct = (pnl / capital) * 100;
+            const roiPct = (pnl / capital) * 100;
             const mult = currentEquity / capital;
 
-            const subLogs = singleSimulationResult.logs.slice(0, step);
-            const wins = subLogs.filter(l => l.isWin).length;
-            const losses = step - wins;
-            const winRate = (wins / step) * 100;
+            document.getElementById('kpiCurrentEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
+            const multEl = document.getElementById('kpiEquityMultiplier');
+            multEl.innerText = `(${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(1)}%／${mult.toFixed(2)}倍)`;
+            multEl.className = `text-[10px] font-semibold mt-0.5 ${roiPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
 
-            let winAmt = 0, lossAmt = 0;
+            const pnlEl = document.getElementById('kpiPnl');
+            pnlEl.innerText = `${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()} 円`;
+            pnlEl.className = `text-sm font-bold mt-1 ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+            const currentLogs = singleSimulationResult.logs.slice(0, step);
+            let wins = 0;
+            let winAmt = 0;
+            let lossAmt = 0;
             let peak = capital;
             let maxDD = 0;
             let maxDDAmt = 0;
-            let curWin = 0, maxWin = 0;
-            let curLoss = 0, maxLoss = 0;
 
-            subLogs.forEach(l => {
-                if (l.isWin) {
-                    winAmt += l.pnlAmount;
-                    curWin++; curLoss = 0;
-                    if (curWin > maxWin) maxWin = curWin;
+            let curW = 0, maxW = 0;
+            let curL = 0, maxL = 0;
+            let isBankrupt = false;
+            const bankruptRate = parseFloat(inputs.bankruptRate.value);
+            const bankruptThreshold = capital * (1 - bankruptRate / 100);
+
+            currentLogs.forEach(log => {
+                if (log.isWin) {
+                    wins++;
+                    winAmt += log.pnlAmount;
+                    curW++; curL = 0;
+                    if (curW > maxW) maxW = curW;
                 } else {
-                    lossAmt += Math.abs(l.pnlAmount);
-                    curLoss++; curWin = 0;
-                    if (curLoss > maxLoss) maxLoss = curLoss;
+                    lossAmt += log.riskAmount;
+                    curL++; curW = 0;
+                    if (curL > maxL) maxL = curL;
                 }
 
-                if (l.equityAfter > peak) peak = l.equityAfter;
-                const ddVal = peak - l.equityAfter;
-                const dd = peak > 0 ? ddVal / peak : 0;
-                if (dd > maxDD) {
-                    maxDD = dd;
+                if (log.equityAfter > peak) peak = log.equityAfter;
+                const ddVal = peak - log.equityAfter;
+                const ddPct = peak > 0 ? ddVal / peak : 0;
+                if (ddPct > maxDD) {
+                    maxDD = ddPct;
                     maxDDAmt = ddVal;
+                }
+
+                if (log.equityAfter <= bankruptThreshold) {
+                    isBankrupt = true;
                 }
             });
 
+            const winRatePct = (wins / step) * 100;
             const pf = lossAmt > 0 ? (winAmt / lossAmt) : (winAmt > 0 ? 999 : 0);
 
-            document.getElementById('kpiCurrentEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
-
-            const kpiPnlEl = document.getElementById('kpiPnl');
-            if (pnl > 0) {
-                kpiPnlEl.className = 'text-sm font-bold mt-1 text-emerald-400';
-            } else if (pnl < 0) {
-                kpiPnlEl.className = 'text-sm font-bold mt-1 text-rose-400';
-            } else {
-                kpiPnlEl.className = 'text-sm font-bold mt-1 text-slate-100';
-            }
-            kpiPnlEl.innerText = `${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()} 円`;
-            document.getElementById('kpiEquityMultiplier').innerText = `(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%／${mult.toFixed(2)}倍)`;
-
-            document.getElementById('kpiWinRate').innerText = `${winRate.toFixed(1)}%`;
-            document.getElementById('kpiWinLossCount').innerText = `(${wins}勝 ${losses}敗)`;
+            document.getElementById('kpiWinRate').innerText = `${winRatePct.toFixed(1)}%`;
+            document.getElementById('kpiWinLossCount').innerText = `(${wins}勝 ${step - wins}敗)`;
             document.getElementById('kpiPF').innerText = pf >= 999 ? '∞' : pf.toFixed(2);
-
             document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
             document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmt).toLocaleString()} 円`;
-            document.getElementById('kpiStreak').innerText = `最大連勝${maxWin}／連敗${maxLoss}`;
+            document.getElementById('kpiStreak').innerText = `最大連勝${maxW}／連敗${maxL}`;
 
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
-            const bankruptThreshold = capital * (1 - bankruptRate / 100);
-            const isBankrupt = currentEquity <= bankruptThreshold;
-
-            const bankruptStatusEl = document.getElementById('kpiBankruptStatus');
+            const bankruptEl = document.getElementById('kpiBankruptStatus');
             if (isBankrupt) {
-                bankruptStatusEl.innerText = '破産達成';
-                bankruptStatusEl.className = 'text-sm font-bold text-rose-500 mt-1';
+                bankruptEl.innerText = `破産到達`;
+                bankruptEl.className = `text-sm font-bold text-rose-500 mt-1`;
             } else {
-                bankruptStatusEl.innerText = '生存';
-                bankruptStatusEl.className = 'text-sm font-bold text-emerald-400 mt-1';
+                bankruptEl.innerText = `生存 (正常)`;
+                bankruptEl.className = `text-sm font-bold text-emerald-400 mt-1`;
             }
-            document.getElementById('kpiBankruptLine').innerText = `閾値 ${bankruptRate}% (${Math.round(bankruptThreshold).toLocaleString()}円)`;
         }
 
         function renderTradeLogTable(logs) {
@@ -791,27 +748,32 @@
             document.getElementById('logCountBadge').innerText = `${logs.length}件`;
 
             if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">ログはありません。</td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-slate-500">
+                            「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
+                        </td>
+                    </tr>`;
                 return;
             }
 
             const displayLogs = isLogAscending ? [...logs] : [...logs].reverse();
 
-            tbody.innerHTML = displayLogs.map(l => {
-                const winBadge = l.isWin
-                    ? `<span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-bold rounded border border-emerald-500/30">WIN</span>`
-                    : `<span class="px-2 py-0.5 bg-rose-500/20 text-rose-400 font-bold rounded border border-rose-500/30">LOSS</span>`;
-
-                const pnlClass = l.pnlAmount > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
-                const pnlSign = l.pnlAmount > 0 ? '+' : '';
+            tbody.innerHTML = displayLogs.map(log => {
+                const winClass = log.isWin ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+                const winText = log.isWin ? 'WIN' : 'LOSE';
+                const pnlSign = log.pnlAmount > 0 ? '+' : '';
+                const pnlClass = log.pnlAmount >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
 
                 return `
                     <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-2.5 font-mono text-slate-400">#${l.tradeIndex}</td>
-                        <td class="p-2.5">${winBadge}</td>
-                        <td class="p-2.5 ${pnlClass}">${pnlSign}${Math.round(l.pnlAmount).toLocaleString()} 円</td>
-                        <td class="p-2.5 font-semibold text-slate-200">${Math.round(l.equityAfter).toLocaleString()} 円</td>
-                        <td class="p-2.5 text-rose-400 font-mono">${(l.currentDD * 100).toFixed(1)}%</td>
+                        <td class="p-2.5 font-mono text-slate-400">#${log.tradeIndex}</td>
+                        <td class="p-2.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${winClass}">${winText}</span>
+                        </td>
+                        <td class="p-2.5 ${pnlClass}">${pnlSign}${Math.round(log.pnlAmount).toLocaleString()} 円</td>
+                        <td class="p-2.5 text-slate-200 font-medium">${Math.round(log.equityAfter).toLocaleString()} 円</td>
+                        <td class="p-2.5 text-rose-400 font-mono">${(log.currentDD * 100).toFixed(1)}%</td>
                     </tr>
                 `;
             }).join('');
@@ -821,10 +783,8 @@
             isLogAscending = !isLogAscending;
             const btn = document.getElementById('btnToggleLogOrder');
             btn.innerText = isLogAscending ? '昇順 (古い順)' : '降順 (新しい順)';
-
-            if (singleSimulationResult) {
-                const subLogs = singleSimulationResult.logs.slice(0, currentStep);
-                renderTradeLogTable(subLogs);
+            if (singleSimulationResult && currentStep > 0) {
+                renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
             }
         }
 
@@ -833,131 +793,174 @@
             document.getElementById('singleLogPanel').classList.add('hidden');
             document.getElementById('montePanel').classList.remove('hidden');
 
+            const runs = parseInt(document.getElementById('monteRuns').value);
+            document.getElementById('monteRunCountText').innerText = runs;
+
             const capital = parseCapitalValue() || 1000000;
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
             const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
-            const runs = parseInt(document.getElementById('monteRuns').value);
-
-            document.getElementById('monteRunCountText').innerText = runs;
 
             montePathsData = [];
-            chart.data.labels = Array.from({ length: count + 1 }, (_, i) => i);
-            chart.data.datasets = [];
+            let totalBankrupts = 0;
+            let sumFinalEquity = 0;
+            let maxFinalEquity = -Infinity;
+            let minFinalEquity = Infinity;
 
-            let totalFinalEquity = 0;
-            let bankruptCount = 0;
-            let totalMaxDD = 0;
-
-            for (let r = 0; r < runs; r++) {
+            for (let i = 0; i < runs; i++) {
                 const res = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
-                res.id = r + 1;
+                res.id = i + 1;
                 res.pnl = res.finalEquity - capital;
                 res.roi = (res.pnl / capital) * 100;
+
+                if (res.isBankrupt) totalBankrupts++;
+                sumFinalEquity += res.finalEquity;
+                if (res.finalEquity > maxFinalEquity) maxFinalEquity = res.finalEquity;
+                if (res.finalEquity < minFinalEquity) minFinalEquity = res.finalEquity;
+
                 montePathsData.push(res);
-
-                totalFinalEquity += res.finalEquity;
-                if (res.isBankrupt) bankruptCount++;
-                totalMaxDD += res.maxDD;
-
-                // 最初の10本だけチャートに描画して動作を軽量化
-                if (r < 10) {
-                    chart.data.datasets.push({
-                        label: `試行 #${r + 1}`,
-                        data: res.path,
-                        borderColor: colors[r % colors.length],
-                        borderWidth: 1.5,
-                        pointRadius: 0,
-                        fill: false
-                    });
-                }
             }
 
-            chart.update();
+            const avgFinalEquity = sumFinalEquity / runs;
+            const bankruptRatePct = (totalBankrupts / runs) * 100;
 
-            // モンテカルロサマリーの計算・表示
-            const avgFinal = totalFinalEquity / runs;
-            const avgPnl = avgFinal - capital;
-            const bankruptProb = (bankruptCount / runs) * 100;
-            const avgDD = (totalMaxDD / runs) * 100;
-
-            document.getElementById('monteSummaryCards').innerHTML = `
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">平均最終残高</div>
-                    <div class="text-xs font-bold ${avgPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">${Math.round(avgFinal).toLocaleString()} 円</div>
-                </div>
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">平均損益 (ROI)</div>
-                    <div class="text-xs font-bold ${avgPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">${avgPnl >= 0 ? '+' : ''}${Math.round(avgPnl).toLocaleString()} 円 (${((avgPnl/capital)*100).toFixed(1)}%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">実測破産発生率</div>
-                    <div class="text-xs font-bold text-rose-400 mt-1">${bankruptProb.toFixed(1)}% (${bankruptCount}/${runs})</div>
-                </div>
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <div class="text-[10px] text-slate-400">平均最大DD</div>
-                    <div class="text-xs font-bold text-amber-400 mt-1">${avgDD.toFixed(1)}%</div>
-                </div>
-            `;
-
-            renderMonteTable();
+            renderMonteSummaryCards(runs, avgFinalEquity, capital, bankruptRatePct, maxFinalEquity, minFinalEquity);
+            renderMonteChart(capital, bankruptRate);
+            sortMonteTable('id', true);
         }
 
-        function sortMonteTable(key) {
-            if (currentSort.key === key) {
+        function renderMonteSummaryCards(runs, avgEquity, capital, bankruptPct, maxEq, minEq) {
+            const container = document.getElementById('monteSummaryCards');
+            const avgPnl = avgEquity - capital;
+            const avgRoi = (avgPnl / capital) * 100;
+
+            container.innerHTML = `
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400">平均最終資産</div>
+                    <div class="text-xs font-bold text-slate-100 mt-0.5">${Math.round(avgEquity).toLocaleString()} 円</div>
+                    <div class="text-[10px] ${avgPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-semibold mt-0.5">
+                        ${avgPnl >= 0 ? '+' : ''}${avgRoi.toFixed(1)}%
+                    </div>
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400">試行破産発生率</div>
+                    <div class="text-xs font-bold ${bankruptPct > 0 ? 'text-rose-400' : 'text-emerald-400'} mt-0.5">${bankruptPct.toFixed(1)}%</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">${runs} 試行中</div>
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400">最高達成資産</div>
+                    <div class="text-xs font-bold text-emerald-400 mt-0.5">${Math.round(maxEq).toLocaleString()} 円</div>
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400">最低到達資産</div>
+                    <div class="text-xs font-bold text-rose-400 mt-0.5">${Math.round(minEq).toLocaleString()} 円</div>
+                </div>
+            `;
+        }
+
+        function renderMonteChart(capital, bankruptRatePct) {
+            const displayCount = Math.min(20, montePathsData.length);
+            const count = parseInt(inputs.tradeCount.value);
+            const bankruptThreshold = capital * (1 - bankruptRatePct / 100);
+
+            chart.data.labels = Array.from({ length: count + 1 }, (_, i) => i);
+
+            const datasets = [];
+
+            for (let i = 0; i < displayCount; i++) {
+                datasets.push({
+                    label: `試行 #${montePathsData[i].id}`,
+                    data: montePathsData[i].path,
+                    borderColor: colors[i % colors.length],
+                    borderWidth: 1.2,
+                    pointRadius: 0,
+                    fill: false
+                });
+            }
+
+            datasets.push({
+                label: '初期資金',
+                data: Array(count + 1).fill(capital),
+                borderColor: '#facc15',
+                borderWidth: 1.5,
+                borderDash: [4, 4],
+                pointRadius: 0,
+                fill: false
+            });
+
+            datasets.push({
+                label: '破産ライン',
+                data: Array(count + 1).fill(bankruptThreshold),
+                borderColor: '#f43f5e',
+                borderWidth: 1.5,
+                borderDash: [4, 4],
+                pointRadius: 0,
+                fill: false
+            });
+
+            chart.data.datasets = datasets;
+            chart.update();
+        }
+
+        function sortMonteTable(key, forceAsc) {
+            if (forceAsc !== undefined) {
+                currentSort.asc = forceAsc;
+            } else if (currentSort.key === key) {
                 currentSort.asc = !currentSort.asc;
             } else {
                 currentSort.key = key;
                 currentSort.asc = true;
             }
 
+            ['id', 'finalEquity', 'pnl', 'winRate', 'pf', 'maxDD', 'isBankrupt'].forEach(k => {
+                const el = document.getElementById(`sort-${k}`);
+                if (el) el.innerText = '';
+            });
+
+            const arrow = currentSort.asc ? '▲' : '▼';
+            const sortEl = document.getElementById(`sort-${key}`);
+            if (sortEl) sortEl.innerText = arrow;
+
             montePathsData.sort((a, b) => {
                 let valA = a[key];
                 let valB = b[key];
-                if (key === 'pnl') valA = a.finalEquity;
-                if (key === 'pnl') valB = b.finalEquity;
+
+                if (key === 'isBankrupt') {
+                    valA = a.isBankrupt ? 1 : 0;
+                    valB = b.isBankrupt ? 1 : 0;
+                }
 
                 if (valA < valB) return currentSort.asc ? -1 : 1;
                 if (valA > valB) return currentSort.asc ? 1 : -1;
                 return 0;
             });
 
-            renderMonteTable();
+            renderMonteTableBody();
         }
 
-        function renderMonteTable() {
+        function renderMonteTableBody() {
             const tbody = document.getElementById('monteTableBody');
-            
-            // ソートアイコン更新
-            ['id', 'finalEquity', 'pnl', 'winRate', 'pf', 'maxDD', 'isBankrupt'].forEach(k => {
-                const el = document.getElementById(`sort-${k}`);
-                if (el) {
-                    if (currentSort.key === k) {
-                        el.innerText = currentSort.asc ? '▲' : '▼';
-                    } else {
-                        el.innerText = '';
-                    }
-                }
-            });
-
-            tbody.innerHTML = montePathsData.map(item => {
-                const pnlClass = item.pnl > 0 ? 'text-emerald-400' : 'text-rose-400';
-                const pnlSign = item.pnl > 0 ? '+' : '';
-                const bankruptBadge = item.isBankrupt
-                    ? `<span class="px-2 py-0.5 bg-rose-500/20 text-rose-400 font-bold rounded border border-rose-500/30">破産</span>`
-                    : `<span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-bold rounded border border-emerald-500/30">生存</span>`;
+            tbody.innerHTML = montePathsData.map(res => {
+                const pnlClass = res.pnl >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
+                const pnlSign = res.pnl >= 0 ? '+' : '';
+                const bankStatus = res.isBankrupt
+                    ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">破産</span>'
+                    : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">生存</span>';
 
                 return `
                     <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-2.5 font-mono text-slate-400">#${item.id}</td>
-                        <td class="p-2.5 font-bold text-slate-100">${Math.round(item.finalEquity).toLocaleString()} 円</td>
-                        <td class="p-2.5 ${pnlClass} font-semibold">${pnlSign}${Math.round(item.pnl).toLocaleString()} 円 (${pnlSign}${item.roi.toFixed(1)}%)</td>
-                        <td class="p-2.5 text-slate-200">${item.winRate.toFixed(1)}% (${item.wins}勝${item.losses}敗)</td>
-                        <td class="p-2.5 text-amber-400 font-mono">${item.pf >= 999 ? '∞' : item.pf.toFixed(2)}</td>
-                        <td class="p-2.5 text-rose-400 font-mono">${(item.maxDD * 100).toFixed(1)}%</td>
-                        <td class="p-2.5">${bankruptBadge}</td>
+                        <td class="p-2.5 font-mono text-slate-400">#${res.id}</td>
+                        <td class="p-2.5 font-semibold text-slate-100">${Math.round(res.finalEquity).toLocaleString()} 円</td>
+                        <td class="p-2.5 ${pnlClass}">
+                            ${pnlSign}${Math.round(res.pnl).toLocaleString()} 円
+                            <span class="text-[10px] opacity-80 block">${pnlSign}${res.roi.toFixed(1)}%</span>
+                        </td>
+                        <td class="p-2.5 text-slate-300">${res.winRate.toFixed(1)}%</td>
+                        <td class="p-2.5 text-slate-300">${res.pf >= 999 ? '∞' : res.pf.toFixed(2)}</td>
+                        <td class="p-2.5 text-rose-400 font-mono">${(res.maxDD * 100).toFixed(1)}%</td>
+                        <td class="p-2.5">${bankStatus}</td>
                     </tr>
                 `;
             }).join('');
@@ -966,8 +969,8 @@
         function resetAll() {
             stopAutoPlay();
             singleSimulationResult = null;
-            montePathsData = [];
             currentStep = 0;
+            montePathsData = [];
 
             inputs.initialCapital.value = "1,000,000";
             inputs.riskPercent.value = "2.0";
@@ -979,36 +982,15 @@
             setMode(true);
             updateControlDisplays();
 
+            document.getElementById('montePanel').classList.add('hidden');
+            document.getElementById('singleLogPanel').classList.remove('hidden');
+
             chart.data.labels = [];
             chart.data.datasets = [];
             chart.update();
 
-            document.getElementById('kpiCurrentEquity').innerText = '1,000,000 円';
-            const kpiPnlEl = document.getElementById('kpiPnl');
-            kpiPnlEl.className = 'text-sm font-bold text-slate-100 mt-1';
-            kpiPnlEl.innerText = '+0 円';
-            document.getElementById('kpiEquityMultiplier').innerText = '(+0.0%／1.00倍)';
-            document.getElementById('kpiWinRate').innerText = '0.0%';
-            document.getElementById('kpiWinLossCount').innerText = '(0勝 0敗)';
-            document.getElementById('kpiPF').innerText = '0.00';
-            document.getElementById('kpiMaxDD').innerText = '0.0%';
-            document.getElementById('kpiMaxDDAmount').innerText = '0 円';
-            document.getElementById('kpiStreak').innerText = '最大連勝0／連敗0';
-            document.getElementById('kpiBankruptStatus').innerText = '判定なし';
-            document.getElementById('kpiBankruptStatus').className = 'text-sm font-bold text-emerald-400 mt-1';
-            document.getElementById('tradeProgressText').innerText = '0 / 500 トレード';
-
-            document.getElementById('tradeLogTableBody').innerHTML = `
-                <tr>
-                    <td colspan="5" class="p-6 text-center text-slate-500">
-                        「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
-                    </td>
-                </tr>
-            `;
-            document.getElementById('logCountBadge').innerText = '0件';
-
-            document.getElementById('montePanel').classList.add('hidden');
-            document.getElementById('singleLogPanel').classList.remove('hidden');
+            updateProgressKPIs(0);
+            renderTradeLogTable([]);
         }
     </script>
 </body>
