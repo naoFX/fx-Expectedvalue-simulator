@@ -51,7 +51,7 @@
                     FX期待値シミュレーター
                 </h1>
             </div>
-            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.3</span>
+            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.4</span>
         </div>
     </header>
 
@@ -71,8 +71,8 @@
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">運用方式</label>
                         <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
-                            <button id="btnModeCompound" class="py-1.5 rounded-md font-semibold bg-blue-600 text-white transition">複利 (Fixed %)</button>
-                            <button id="btnModeSimple" class="py-1.5 rounded-md font-semibold text-slate-400 hover:text-slate-200 transition">単利 (Fixed Amt)</button>
+                            <button id="btnModeCompound" class="py-1.5 rounded-md font-semibold bg-blue-600 text-white transition">複利</button>
+                            <button id="btnModeSimple" class="py-1.5 rounded-md font-semibold text-slate-400 hover:text-slate-200 transition">単利</button>
                         </div>
                     </div>
 
@@ -106,33 +106,19 @@
                     <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
                 </div>
 
-                <!-- 理論値PF と 1トレードあたり期待値を同じ枠に統合 -->
+                <!-- PF と 1トレードあたりの期待利益率に変更 -->
                 <div class="bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800 space-y-1.5 text-xs">
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">理論値PF</span>
+                        <span class="text-slate-400">PF</span>
                         <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
                     </div>
                     <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
-                        <span class="text-slate-400">1トレードあたり期待値</span>
+                        <span class="text-slate-400">1トレードあたりの期待利益率</span>
                         <span id="theoryExpectancy" class="font-bold text-emerald-400">+0.00%</span>
                     </div>
-                </div>
-
-                <!-- Bankruptcy Threshold Slider -->
-                <div>
-                    <div class="flex justify-between items-center text-xs font-medium text-slate-400 mb-1">
-                        <div class="flex items-center space-x-2">
-                            <span>破産と判定する資金低下率 (%)</span>
-                            <label class="cursor-pointer flex items-center space-x-1 text-slate-300">
-                                <input type="checkbox" id="toggleBankrupt" class="rounded bg-slate-900 border-slate-700 text-rose-500 focus:ring-0 cursor-pointer">
-                                <span class="text-[11px]">表示</span>
-                            </label>
-                        </div>
-                        <span id="bankruptRateVal" class="text-rose-400 font-bold">50.0%</span>
-                    </div>
-                    <div id="bankruptSection" style="display: none;">
-                        <input type="range" id="bankruptRate" min="10" max="90" value="50" step="5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                        <p class="text-[11px] text-slate-500 mt-1">判定ライン: 残高 <span id="bankruptAmount" class="text-slate-400">500,000 円</span> 以下</p>
+                    <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
+                        <span class="text-slate-400">1トレードあたりの期待R</span>
+                        <span id="theoryExpectancyR" class="font-bold text-emerald-400">+0.00 R</span>
                     </div>
                 </div>
 
@@ -188,10 +174,6 @@
                         <span class="w-3.5 h-0.5 border-t border-dashed border-yellow-400 inline-block"></span>
                         <span class="text-slate-200">初期資金</span>
                     </div>
-                    <div class="flex items-center space-x-1.5">
-                        <span class="w-3.5 h-0.5 border-t border-dashed border-rose-500 inline-block"></span>
-                        <span class="text-slate-200">破産ライン</span>
-                    </div>
                 </div>
 
                 <div class="relative h-72 w-full">
@@ -200,17 +182,18 @@
             </div>
 
             <!-- KPI Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <!-- 現在の資産カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-cyan-500">
                     <div class="text-[11px] text-slate-400">現在の資産</div>
                     <div id="kpiCurrentEquity" class="text-sm font-bold text-slate-100 mt-1">1,000,000 円</div>
                     <div id="kpiEquityMultiplier" class="text-[10px] text-emerald-400 font-semibold mt-0.5">(+0.0%／1.00倍)</div>
                 </div>
-                <!-- 損益カード -->
+                <!-- 損益カード (獲得Rを追加) -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-blue-500">
                     <div class="text-[11px] text-slate-400">損益</div>
                     <div id="kpiPnl" class="text-sm font-bold text-slate-100 mt-1">+0 円</div>
+                    <div id="kpiTotalR" class="text-[10px] text-blue-400 font-semibold mt-0.5">獲得R: +0.00 R</div>
                 </div>
                 <!-- 実績勝率カード -->
                 <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-emerald-500">
@@ -225,18 +208,13 @@
                     <div id="kpiPF" class="text-sm font-bold text-slate-100 mt-1">0.00</div>
                     <div id="kpiTheoreticalPF" class="text-[10px] text-slate-400">理論値PF: 1.50</div>
                 </div>
-                <!-- 最大DDカード（ここに連勝/連敗を移動） -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500">
+                <!-- 最大DDカード -->
+                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500 col-span-2 sm:col-span-1">
                     <div class="text-[11px] text-slate-400">最大DD</div>
                     <div id="kpiMaxDD" class="text-sm font-bold text-rose-400 mt-1">0.0%</div>
                     <div id="kpiMaxDDAmount" class="text-[10px] text-rose-400 font-semibold hidden">0 円</div>
                     <div id="kpiDDPeriod" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大DD期間0回</div>
                     <div id="kpiStreak" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大連勝0／連敗0</div>
-                </div>
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
-                    <div class="text-[11px] text-slate-400">破産判定</div>
-                    <div id="kpiBankruptStatus" class="text-sm font-bold text-emerald-400 mt-1">判定なし</div>
-                    <div id="kpiBankruptLine" class="text-[10px] text-slate-400">閾値 50%</div>
                 </div>
             </div>
 
@@ -282,12 +260,10 @@
         // Global State Variables
         let chart = null;
         let singleSimulationResult = null;
-        let montePathsData = [];
         let currentStep = 0;
         let autoPlayTimer = null;
         let isCompound = true;
         let isLogAscending = false;
-        let currentSort = { key: 'id', asc: true };
 
         const colors = [
             '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
@@ -300,21 +276,15 @@
             riskPercent: document.getElementById('riskPercent'),
             winRate: document.getElementById('winRate'),
             rrr: document.getElementById('rrr'),
-            bankruptRate: document.getElementById('bankruptRate'),
             tradeCount: document.getElementById('tradeCount')
         };
 
         const displays = {
             winRateVal: document.getElementById('winRateVal'),
             rrrVal: document.getElementById('rrrVal'),
-            bankruptRateVal: document.getElementById('bankruptRateVal'),
-            bankruptAmount: document.getElementById('bankruptAmount'),
             tradeCountVal: document.getElementById('tradeCountVal'),
             theoryPF: document.getElementById('theoryPF')
         };
-
-        const toggleBankrupt = document.getElementById('toggleBankrupt');
-        const bankruptSection = document.getElementById('bankruptSection');
 
         // カンマ区切りの数値を数値型へ変換するヘルパー関数
         function parseCapitalValue() {
@@ -338,23 +308,6 @@
             inputs.initialCapital.addEventListener('blur', () => {
                 const num = parseCapitalValue();
                 inputs.initialCapital.value = Math.round(num).toLocaleString();
-            });
-
-            toggleBankrupt.addEventListener('change', () => {
-                const isVisible = toggleBankrupt.checked;
-                bankruptSection.style.display = isVisible ? 'block' : 'none';
-
-                // グラフを再描画して破産ラインの表示/非表示を連動
-                if (singleSimulationResult && currentStep > 0) {
-                    const capital = parseCapitalValue() || 1000000;
-                    const bankruptRate = parseFloat(inputs.bankruptRate.value);
-                    const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
-                    renderSingleChart(slicedPath, capital, bankruptRate, singleSimulationResult.maxDDStartIndex, singleSimulationResult.maxDDEndIndex);
-                } else {
-                    const capital = parseCapitalValue() || 1000000;
-                    const bankruptRate = parseFloat(inputs.bankruptRate.value);
-                    renderSingleChart([], capital, bankruptRate, 0, 0);
-                }
             });
 
             document.getElementById('btnModeCompound').addEventListener('click', () => setMode(true));
@@ -391,32 +344,29 @@
         function updateControlDisplays() {
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
 
             displays.winRateVal.innerText = `${winRate.toFixed(1)}%`;
             displays.rrrVal.innerText = rrr.toFixed(2);
-            displays.bankruptRateVal.innerText = `${bankruptRate.toFixed(1)}%`;
             displays.tradeCountVal.innerText = inputs.tradeCount.value;
-
-            const capital = parseCapitalValue();
-            const threshold = capital * (1 - bankruptRate / 100);
-            displays.bankruptAmount.innerText = `${Math.round(threshold).toLocaleString()} 円`;
 
             const tPF = calculateTheoreticalPF(winRate, rrr);
             displays.theoryPF.innerText = tPF.toFixed(2);
             document.getElementById('kpiTheoreticalPF').innerText = `理論値PF: ${tPF.toFixed(2)}`;
 
-            // 1トレードあたり期待値 (%) の計算: 期待値(R) = (勝率 * RRR) - (敗率 * 1) -> 資金リスクに対する比率 % = 期待値(R) * riskPct
             const w = winRate / 100;
             const l = 1 - w;
             const expectancyR = (w * rrr) - l;
             const expectancyPct = expectancyR * riskPct;
+            
             const expEl = document.getElementById('theoryExpectancy');
             expEl.innerText = `${expectancyPct >= 0 ? '+' : ''}${expectancyPct.toFixed(2)}%`;
             expEl.className = `font-bold ${expectancyPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
 
-            // 理論勝率の表示更新
+            const expREl = document.getElementById('theoryExpectancyR');
+            expREl.innerText = `${expectancyR >= 0 ? '+' : ''}${expectancyR.toFixed(2)} R`;
+            expREl.className = `font-bold ${expectancyR >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
             document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${winRate.toFixed(1)}%`;
             if (!singleSimulationResult || currentStep === 0) {
                 document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
@@ -444,7 +394,7 @@
             });
         }
 
-        function generateTradePath(capital, riskPct, winRatePct, rrr, count, bankruptRatePct, compound) {
+        function generateTradePath(capital, riskPct, winRatePct, rrr, count, compound) {
             let equity = capital;
             const path = [equity];
             const logs = [];
@@ -458,25 +408,25 @@
             let maxDDStartIndex = 0;
             let maxDDEndIndex = 0;
             let maxDDPeakValue = equity;
-            let maxDDFullPeriod = 0; // ピークから回復までの全トレード数
+            let totalR = 0;
 
             let curWinStreak = 0, maxWinStreak = 0;
             let curLossStreak = 0, maxLossStreak = 0;
 
-            const bankruptThreshold = capital * (1 - bankruptRatePct / 100);
-            let isBankrupt = false;
             const fixedRiskAmt = capital * (riskPct / 100);
 
             for (let i = 0; i < count; i++) {
                 const riskAmount = compound ? (equity * (riskPct / 100)) : fixedRiskAmt;
                 const isWin = Math.random() < (winRatePct / 100);
                 let pnlAmount = 0;
+                let tradeR = 0;
 
                 if (isWin) {
                     pnlAmount = riskAmount * rrr;
                     equity += pnlAmount;
                     wins++;
                     totalWinAmount += pnlAmount;
+                    tradeR = rrr;
 
                     curWinStreak++;
                     curLossStreak = 0;
@@ -485,20 +435,20 @@
                     pnlAmount = -riskAmount;
                     equity -= riskAmount;
                     totalLossAmount += riskAmount;
+                    tradeR = -1;
 
                     curLossStreak++;
                     curWinStreak = 0;
                     if (curLossStreak > maxLossStreak) maxLossStreak = curLossStreak;
                 }
 
+                totalR += tradeR;
+
                 if (equity > peak) {
                     peak = equity;
                     peakIndex = i + 1;
                 }
 
-                if (equity <= bankruptThreshold) {
-                    isBankrupt = true;
-                }
                 if (equity < 0) equity = 0;
 
                 path.push(equity);
@@ -518,12 +468,12 @@
                     isWin,
                     riskAmount,
                     pnlAmount,
+                    tradeR,
                     equityAfter: equity,
                     currentDD
                 });
             }
 
-            // ピーク発生時から回復（またはシミュレーション終了）までの全期間（ピークの起点を含めず、最大下落・回復までにかかったトレード数）
             if (maxDDStartIndex > 0) {
                 let recoveryIndex = maxDDEndIndex;
                 let recovered = false;
@@ -537,7 +487,6 @@
                 if (!recovered) {
                     recoveryIndex = path.length - 1;
                 }
-                maxDDFullPeriod = recoveryIndex - maxDDStartIndex + 1;
             }
 
             const totalExecuted = logs.length;
@@ -557,11 +506,10 @@
                 maxDDStartIndex,
                 maxDDEndIndex,
                 maxDDPeakValue,
-                maxDDFullPeriod,
                 maxWinStreak,
                 maxLossStreak,
-                finalEquity: equity,
-                isBankrupt
+                totalR,
+                finalEquity: equity
             };
         }
 
@@ -572,41 +520,21 @@
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
 
-            singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
+            singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, isCompound);
             currentStep = singleSimulationResult.totalExecuted;
 
             const currentSubLogs = singleSimulationResult.logs.slice(0, currentStep);
             const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
 
-            renderSingleChart(singleSimulationResult.path.slice(0, currentStep + 1), capital, bankruptRate, subDDInfo.maxDDStartIndex, subDDInfo.maxDDEndIndex);
+            renderSingleChart(singleSimulationResult.path.slice(0, currentStep + 1), capital, subDDInfo.maxDDStartIndex, subDDInfo.maxDDRecoveryIndex);
             updateProgressKPIs(currentStep);
             renderTradeLogTable(singleSimulationResult.logs);
         }
 
-        function renderSingleChart(path, capital, bankruptRatePct, maxDDStart = 0, maxDDEnd = 0) {
+        function renderSingleChart(path, capital, maxDDStart = 0, recoveryIndex = 0) {
             chart.data.labels = path.map((_, i) => i);
-            const bankruptThreshold = capital * (1 - bankruptRatePct / 100);
-            const showBankrupt = toggleBankrupt.checked;
-
-            // グラフの最大DD区間（ピークから回復まで）を正確に特定するための終了インデックス（リカバリー地点）を計算
-            let recoveryIndex = maxDDEnd;
-            if (maxDDStart > 0 && maxDDStart < path.length) {
-                let peakVal = path[maxDDStart - 1];
-                let recovered = false;
-                for (let j = maxDDEnd; j < path.length; j++) {
-                    if (path[j] >= peakVal) {
-                        recoveryIndex = j;
-                        recovered = true;
-                        break;
-                    }
-                }
-                if (!recovered) {
-                    recoveryIndex = path.length - 1;
-                }
-            }
 
             const datasets = [
                 {
@@ -618,7 +546,7 @@
                     fill: false,
                     segment: {
                         borderColor: ctx => {
-                            if (maxDDStart > 0 && ctx.p0DataIndex >= maxDDStart - 1 && ctx.p1DataIndex <= recoveryIndex) {
+                            if (maxDDStart > 0 && ctx.p1DataIndex > maxDDStart && ctx.p1DataIndex <= recoveryIndex) {
                                 return '#f43f5e';
                             }
                             return '#3b82f6';
@@ -636,18 +564,6 @@
                 }
             ];
 
-            if (showBankrupt) {
-                datasets.push({
-                    label: '破産ライン',
-                    data: Array(path.length).fill(bankruptThreshold),
-                    borderColor: '#f43f5e',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 0,
-                    fill: false
-                });
-            }
-
             chart.data.datasets = datasets;
             chart.update();
         }
@@ -657,11 +573,10 @@
             const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
             const winRate = parseFloat(inputs.winRate.value);
             const rrr = parseFloat(inputs.rrr.value);
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
             const count = parseInt(inputs.tradeCount.value);
 
             if (!singleSimulationResult || singleSimulationResult.path.length - 1 !== count || currentStep >= count) {
-                singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, bankruptRate, isCompound);
+                singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, isCompound);
                 currentStep = 0;
             }
 
@@ -673,7 +588,7 @@
             const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
             const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
 
-            renderSingleChart(slicedPath, capital, bankruptRate, subDDInfo.maxDDStartIndex, subDDInfo.maxDDEndIndex);
+            renderSingleChart(slicedPath, capital, subDDInfo.maxDDStartIndex, subDDInfo.maxDDRecoveryIndex);
             updateProgressKPIs(currentStep);
             renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
         }
@@ -724,6 +639,7 @@
                 document.getElementById('kpiCurrentEquity').innerText = `${Math.round(capital).toLocaleString()} 円`;
                 document.getElementById('kpiEquityMultiplier').innerText = `(+0.0%／1.00倍)`;
                 document.getElementById('kpiPnl').innerText = `+0 円`;
+                document.getElementById('kpiTotalR').innerText = `獲得R: +0.00 R`;
                 document.getElementById('kpiWinRate').innerText = `0.0%`;
                 document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
                 document.getElementById('kpiPF').innerText = `0.00`;
@@ -731,8 +647,6 @@
                 document.getElementById('kpiMaxDDAmount').innerText = `0 円`;
                 document.getElementById('kpiDDPeriod').innerText = `最大DD期間0回`;
                 document.getElementById('kpiStreak').innerText = `最大連勝0／連敗0`;
-                document.getElementById('kpiBankruptStatus').innerText = `判定なし`;
-                document.getElementById('kpiBankruptStatus').className = `text-sm font-bold text-emerald-400 mt-1`;
                 return;
             }
 
@@ -755,6 +669,7 @@
             let wins = 0;
             let winAmt = 0;
             let lossAmt = 0;
+            let cumulativeR = 0;
             let peak = capital;
             let peakIndex = 0;
             let maxDD = 0;
@@ -765,12 +680,10 @@
 
             let curW = 0, maxW = 0;
             let curL = 0, maxL = 0;
-            let isBankrupt = false;
-            const bankruptRate = parseFloat(inputs.bankruptRate.value);
-            const bankruptThreshold = capital * (1 - bankruptRate / 100);
 
             currentLogs.forEach((log, idx) => {
                 const tradeIdx = idx + 1;
+                cumulativeR += log.tradeR;
                 if (log.isWin) {
                     wins++;
                     winAmt += log.pnlAmount;
@@ -795,13 +708,12 @@
                     maxDDEndIdx = tradeIdx;
                     maxDDPeakVal = peak;
                 }
-
-                if (log.equityAfter <= bankruptThreshold) {
-                    isBankrupt = true;
-                }
             });
 
-            // 現在のステップ時点における、ピークから回復（または現在ステップまで）までの全トレード数
+            const totalREl = document.getElementById('kpiTotalR');
+            totalREl.innerText = `獲得R: ${cumulativeR >= 0 ? '+' : ''}${cumulativeR.toFixed(2)} R`;
+            totalREl.className = `text-[10px] font-semibold mt-0.5 ${cumulativeR >= 0 ? 'text-blue-400' : 'text-rose-400'}`;
+
             let currentFullPeriod = 0;
             if (maxDDStartIdx > 0) {
                 let recoveryIndex = maxDDEndIdx;
@@ -817,7 +729,7 @@
                 if (!recovered) {
                     recoveryIndex = currentPathSlice.length - 1;
                 }
-                currentFullPeriod = recoveryIndex - maxDDStartIdx + 1;
+                currentFullPeriod = Math.max(0, (recoveryIndex - maxDDStartIdx + 1) - 2);
             }
 
             const winRatePct = (wins / step) * 100;
@@ -830,24 +742,15 @@
             document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
             document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmt).toLocaleString()} 円`;
             document.getElementById('kpiDDPeriod').innerText = `最大DD期間${currentFullPeriod}回`;
-
-            const bankruptEl = document.getElementById('kpiBankruptStatus');
-            if (isBankrupt) {
-                bankruptEl.innerText = `破産到達`;
-                bankruptEl.className = `text-sm font-bold text-rose-500 mt-1`;
-            } else {
-                bankruptEl.innerText = `生存 (正常)`;
-                bankruptEl.className = `text-sm font-bold text-emerald-400 mt-1`;
-            }
         }
 
-        // 進行中のログから現在の最大DD期間を抽出するヘルパー関数
         function calculateCurrentMaxDD(currentLogs, capital) {
             let peak = capital;
             let peakIndex = 0;
             let maxDD = 0;
             let maxDDStartIndex = 0;
             let maxDDEndIndex = 0;
+            let maxDDPeakValue = capital;
 
             currentLogs.forEach((log, idx) => {
                 const tradeIdx = idx + 1;
@@ -861,10 +764,28 @@
                     maxDD = ddPct;
                     maxDDStartIndex = peakIndex;
                     maxDDEndIndex = tradeIdx;
+                    maxDDPeakValue = peak;
                 }
             });
 
-            return { maxDDStartIndex, maxDDEndIndex };
+            // Calculate recovery index where equity >= maxDDPeakValue, shifted 1 trade earlier (so it returns to blue 1 step sooner)
+            let maxDDRecoveryIndex = maxDDEndIndex;
+            if (maxDDStartIndex > 0) {
+                let recovered = false;
+                const currentPathSlice = [capital, ...currentLogs.map(l => l.equityAfter)];
+                for (let j = maxDDEndIndex; j < currentPathSlice.length; j++) {
+                    if (currentPathSlice[j] >= maxDDPeakValue) {
+                        maxDDRecoveryIndex = j - 1; // 1トレード早く青に戻るように調整
+                        recovered = true;
+                        break;
+                    }
+                }
+                if (!recovered) {
+                    maxDDRecoveryIndex = currentPathSlice.length - 1;
+                }
+            }
+
+            return { maxDDStartIndex, maxDDRecoveryIndex };
         }
 
         function renderTradeLogTable(logs) {
@@ -921,11 +842,7 @@
             inputs.riskPercent.value = "2.0";
             inputs.winRate.value = "60";
             inputs.rrr.value = "1.00";
-            inputs.bankruptRate.value = "50";
             inputs.tradeCount.value = "500";
-
-            toggleBankrupt.checked = false;
-            bankruptSection.style.display = 'none';
 
             setMode(true);
             updateControlDisplays();
