@@ -124,13 +124,13 @@
                         <div class="flex items-center space-x-2">
                             <span>破産と判定する資金低下率 (%)</span>
                             <label class="cursor-pointer flex items-center space-x-1 text-slate-300">
-                                <input type="checkbox" id="toggleBankrupt" checked class="rounded bg-slate-900 border-slate-700 text-rose-500 focus:ring-0 cursor-pointer">
+                                <input type="checkbox" id="toggleBankrupt" class="rounded bg-slate-900 border-slate-700 text-rose-500 focus:ring-0 cursor-pointer">
                                 <span class="text-[11px]">表示</span>
                             </label>
                         </div>
                         <span id="bankruptRateVal" class="text-rose-400 font-bold">50.0%</span>
                     </div>
-                    <div id="bankruptSection">
+                    <div id="bankruptSection" style="display: none;">
                         <input type="range" id="bankruptRate" min="10" max="90" value="50" step="5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
                         <p class="text-[11px] text-slate-500 mt-1">判定ライン: 残高 <span id="bankruptAmount" class="text-slate-400">500,000 円</span> 以下</p>
                     </div>
@@ -924,8 +924,8 @@
             inputs.bankruptRate.value = "50";
             inputs.tradeCount.value = "500";
 
-            toggleBankrupt.checked = true;
-            bankruptSection.style.display = 'block';
+            toggleBankrupt.checked = false;
+            bankruptSection.style.display = 'none';
 
             setMode(true);
             updateControlDisplays();
