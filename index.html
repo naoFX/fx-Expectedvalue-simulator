@@ -91,7 +91,10 @@
         <!-- Inputs Row 2: Account Balance & Max Leverage -->
         <div class="w-full grid grid-cols-3 gap-3 mb-5">
             <div class="col-span-2 flex flex-col items-center">
-                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">証拠金 (円)</label>
+                <div class="flex items-center gap-1 mb-1.5">
+                    <label class="text-xs sm:text-sm font-bold text-sky-700">証拠金 (円)</label>
+                    <span id="saveStatus" class="text-[10px] text-sky-600 font-semibold opacity-0 transition-opacity">保存完了</span>
+                </div>
                 <input type="text" id="accountBalance" value="1,000,000"
                     class="w-full h-12 blue-box rounded-xl text-center font-bold text-xl outline-none focus:ring-2 focus:ring-sky-400 transition">
             </div>
@@ -227,6 +230,43 @@
 
         let selectedPair = 'USD/JPY';
 
+        // Local Storage Management
+        const STORAGE_KEY = 'fx_calculator_settings_v1';
+
+        function saveSettings() {
+            try {
+                const settings = {
+                    stopLoss: stopLossInput.value,
+                    riskPercent: riskPercentInput.value,
+                    accountBalance: balanceInput.value,
+                    maxLeverage: maxLeverageInput.value,
+                    currencyPair: currencySelect.value
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            } catch (e) {
+                console.warn("Could not save settings to localStorage:", e);
+            }
+        }
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    if (settings.stopLoss !== undefined) stopLossInput.value = settings.stopLoss;
+                    if (settings.riskPercent !== undefined) riskPercentInput.value = settings.riskPercent;
+                    if (settings.accountBalance !== undefined) balanceInput.value = settings.accountBalance;
+                    if (settings.maxLeverage !== undefined) maxLeverageInput.value = settings.maxLeverage;
+                    if (settings.currencyPair !== undefined) {
+                        currencySelect.value = settings.currencyPair;
+                        selectedPair = settings.currencyPair;
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not load settings from localStorage:", e);
+            }
+        }
+
         // Benchmark Real-time Base Rates
         const baseMarketRates = {
             'USD/JPY': 157.890,
@@ -251,6 +291,7 @@
         balanceInput.addEventListener('blur', () => {
             const raw = parseFormattedNumber(balanceInput.value);
             if (raw > 0) balanceInput.value = formatNumber(raw);
+            saveSettings();
         });
 
         balanceInput.addEventListener('focus', () => {
@@ -421,17 +462,23 @@
         // Event Listeners
         currencySelect.addEventListener('change', (e) => {
             selectedPair = e.target.value;
-            fetchCurrencyRate(selectedPair, true);
+            saveSettings();
+            fetchCurrencyRate(selectedPair);
         });
 
-        stopLossInput.addEventListener('input', calculateLot);
-        riskPercentInput.addEventListener('input', calculateLot);
-        balanceInput.addEventListener('input', calculateLot);
-        maxLeverageInput.addEventListener('input', calculateLot);
+        const handleInput = () => {
+            calculateLot();
+            saveSettings();
+        };
+
+        stopLossInput.addEventListener('input', handleInput);
+        riskPercentInput.addEventListener('input', handleInput);
+        balanceInput.addEventListener('input', handleInput);
+        maxLeverageInput.addEventListener('input', handleInput);
         basePriceInput.addEventListener('input', calculateLot);
         
         refreshRateBtn.addEventListener('click', () => {
-            fetchCurrencyRate(selectedPair, true);
+            fetchCurrencyRate(selectedPair);
         });
 
         helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
@@ -442,6 +489,7 @@
 
         // Initial Initialization on Load
         window.addEventListener('load', () => {
+            loadSettings();
             fetchCurrencyRate(currencySelect.value);
         });
     </script>
