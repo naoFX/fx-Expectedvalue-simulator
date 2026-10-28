@@ -3,862 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FX期待値シミュレーター</title>
-    <!-- Tailwind CSS -->
+    <title>FX ロット計算</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        appBg: '#222831',
+                        bluePrimary: '#38BDF8',
+                        bluePrimaryHover: '#0EA5E9',
+                        darkText: '#0F172A',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: #FFFFFF;
+            color: #0284C7;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
         }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        .sort-header:hover {
-            cursor: pointer;
-            background-color: rgba(255, 255, 255, 0.05);
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
+        input[type=number] {
+            -moz-appearance: textfield;
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(51, 65, 85, 0.8);
-            border-radius: 3px;
+        .blue-box {
+            background-color: #E0F2FE;
+            color: #0369A1;
+            border: 1px solid #BAE6FD;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(71, 85, 105, 1);
+        .blue-border-box {
+            border: 2px solid #38BDF8;
+            background-color: #F0F9FF;
+            color: #0369A1;
         }
     </style>
 </head>
+<body class="min-h-screen flex flex-col items-center justify-center p-1.5 sm:p-6 antialiased bg-slate-100">
 
-<body class="min-h-screen pb-12">
-    <!-- Header -->
-    <header class="border-b border-slate-800 glass-panel sticky top-0 z-50 px-6 py-4 mb-6">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <span class="text-2xl">📈</span>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                    FX期待値シミュレーター
-                </h1>
-            </div>
-            <span class="text-xs px-3 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">v3.4</span>
+    <!-- App Main Container -->
+    <div class="w-full max-w-md bg-white flex flex-col items-center justify-between min-h-[92vh] sm:min-h-[95vh] py-5 px-3.5 sm:px-6 rounded-2xl sm:rounded-3xl relative border border-slate-200 shadow-xl">
+        
+        <!-- Top Header -->
+        <div class="w-full text-center relative mb-4">
+            <!-- HELP Button -->
+            <button id="helpBtn" class="absolute left-0 top-0 border-2 border-sky-500 text-sky-600 bg-sky-50 rounded-full w-12 h-12 flex items-center justify-center text-xs font-bold hover:bg-sky-500 hover:text-white transition duration-200">
+                HELP
+            </button>
+
+            <h1 class="text-3xl font-extrabold tracking-tight text-sky-600">FX</h1>
+            <p class="text-xl font-bold tracking-wide text-sky-600">ロット計算</p>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Control Panel (Left Column) -->
-        <div class="lg:col-span-4 space-y-6">
-            <section class="glass-panel p-6 rounded-2xl space-y-5">
-                <h2 class="text-lg font-semibold text-slate-200 border-b border-slate-700 pb-2 flex items-center justify-between">
-                    <span>⚙️ シミュレーション設定</span>
-                    <button id="btnReset" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-md border border-slate-600 transition">
-                        ↺ リセット
+        <!-- Inputs Row 1: Stop Loss & Risk % -->
+        <div class="w-full grid grid-cols-2 gap-4 mb-4">
+            <div class="flex flex-col items-center">
+                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">ストップ幅 (pips)</label>
+                <input type="number" id="stopLoss" value="20" step="any"
+                    class="w-full h-12 blue-box rounded-xl text-center font-bold text-xl outline-none focus:ring-2 focus:ring-sky-400 transition">
+            </div>
+            <div class="flex flex-col items-center">
+                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">リスク%</label>
+                <input type="number" id="riskPercent" value="2.00" step="0.01"
+                    class="w-full h-12 blue-box rounded-xl text-center font-bold text-xl outline-none focus:ring-2 focus:ring-sky-400 transition">
+            </div>
+        </div>
+
+        <!-- Inputs Row 2: Account Balance & Max Leverage -->
+        <div class="w-full grid grid-cols-3 gap-3 mb-5">
+            <div class="col-span-2 flex flex-col items-center">
+                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">証拠金 (円)</label>
+                <input type="text" id="accountBalance" value="1,000,000"
+                    class="w-full h-12 blue-box rounded-xl text-center font-bold text-xl outline-none focus:ring-2 focus:ring-sky-400 transition">
+            </div>
+            <div class="flex flex-col items-center">
+                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">最大レバ</label>
+                <input type="number" id="maxLeverage" value="25" step="1" min="1"
+                    class="w-full h-12 blue-box rounded-xl text-center font-bold text-xl outline-none focus:ring-2 focus:ring-sky-400 transition">
+            </div>
+        </div>
+
+        <!-- Live Price & Timestamp Info -->
+        <div class="w-full grid grid-cols-2 gap-4 mb-4">
+            <div class="flex flex-col items-center">
+                <div class="flex items-center gap-1 mb-1.5">
+                    <label class="text-xs sm:text-sm font-bold text-sky-700">通貨ペア価格</label>
+                    <button id="refreshRateBtn" title="価格を更新" class="text-sky-500 hover:text-sky-700 active:scale-95 transition-transform duration-100">
+                        <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
                     </button>
-                </h2>
-
-                <!-- Capital Inputs & Compound/Simple Mode -->
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">運用方式</label>
-                        <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
-                            <button id="btnModeCompound" class="py-1.5 rounded-md font-semibold bg-blue-600 text-white transition">複利</button>
-                            <button id="btnModeSimple" class="py-1.5 rounded-md font-semibold text-slate-400 hover:text-slate-200 transition">単利</button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">初期資金 (円)</label>
-                            <input type="text" id="initialCapital" value="1,000,000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">1トレードリスク (%)</label>
-                            <input type="number" id="riskPercent" value="2.0" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500">
-                        </div>
-                    </div>
                 </div>
-
-                <!-- Win Rate Slider -->
-                <div>
-                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
-                        <span>勝率 (%)</span>
-                        <span id="winRateVal" class="text-blue-400 font-bold">60.0%</span>
-                    </div>
-                    <input type="range" id="winRate" min="10" max="90" value="60" step="0.5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                </div>
-
-                <!-- RRR Slider -->
-                <div>
-                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
-                        <span>リスクリワード比 (RRR)</span>
-                        <span id="rrrVal" class="text-blue-400 font-bold">1.00</span>
-                    </div>
-                    <input type="range" id="rrr" min="0.2" max="5.0" value="1.00" step="0.05" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                </div>
-
-                <!-- PF と 1トレードあたりの期待利益率に変更 -->
-                <div class="bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800 space-y-1.5 text-xs">
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">PF</span>
-                        <span id="theoryPF" class="font-bold text-amber-400">1.50</span>
-                    </div>
-                    <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
-                        <span class="text-slate-400">1トレードあたりの期待利益率</span>
-                        <span id="theoryExpectancy" class="font-bold text-emerald-400">+0.00%</span>
-                    </div>
-                    <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
-                        <span class="text-slate-400">1トレードあたりの期待R</span>
-                        <span id="theoryExpectancyR" class="font-bold text-emerald-400">+0.00 R</span>
-                    </div>
-                </div>
-
-                <!-- Trade Count Slider -->
-                <div>
-                    <div class="flex justify-between text-xs font-medium text-slate-400 mb-1">
-                        <span>試行トレード数 (回)</span>
-                        <span id="tradeCountVal" class="text-blue-400 font-bold">500</span>
-                    </div>
-                    <input type="range" id="tradeCount" min="50" max="2000" value="500" step="50" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="space-y-2 pt-2 border-t border-slate-700/60">
-                    <button id="btnRunSingle" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center space-x-2">
-                        <span>▶ シミュレーション一括実行</span>
-                    </button>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="btnStep" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
-                            ⏭ 1トレード送り
-                        </button>
-                        <button id="btnAutoPlay" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
-                            ⏯ 自動再生
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <!-- Dashboard / Results (Right Column) -->
-        <div class="lg:col-span-8 space-y-6">
-            <!-- Chart Panel -->
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h3 class="text-sm font-semibold text-slate-300">
-                        資産推移曲線 (Equity Curve)
-                    </h3>
-                    <span id="tradeProgressText" class="text-base font-bold text-cyan-400">0 / 500 トレード</span>
-                </div>
-
-                <!-- 凡例エリア -->
-                <div class="flex flex-wrap items-center gap-4 text-xs bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800/80 mb-4">
-                    <div class="flex items-center space-x-1.5">
-                        <span class="w-3.5 h-1 bg-blue-500 rounded-full inline-block"></span>
-                        <span class="text-slate-200">資産推移</span>
-                    </div>
-                    <div class="flex items-center space-x-1.5">
-                        <span class="w-3.5 h-1 bg-rose-500 rounded-full inline-block"></span>
-                        <span class="text-slate-200">最大DD期間</span>
-                    </div>
-                    <div class="flex items-center space-x-1.5">
-                        <span class="w-3.5 h-0.5 border-t border-dashed border-yellow-400 inline-block"></span>
-                        <span class="text-slate-200">初期資金</span>
-                    </div>
-                </div>
-
-                <div class="relative h-72 w-full">
-                    <canvas id="equityChart"></canvas>
+                <div class="w-full h-12 blue-border-box rounded-xl flex items-center justify-center font-bold text-lg relative px-2">
+                    <input type="number" id="basePriceInput" value="157.900" step="any"
+                        class="w-full text-center bg-transparent border-none outline-none font-bold text-lg text-sky-800 focus:ring-0">
+                    <span id="loadingSpinner" class="hidden absolute right-2 border-2 border-sky-500 border-t-transparent rounded-full w-4 h-4 animate-spin"></span>
                 </div>
             </div>
-
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <!-- 現在の資産カード -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-cyan-500">
-                    <div class="text-[11px] text-slate-400">現在の資産</div>
-                    <div id="kpiCurrentEquity" class="text-sm font-bold text-slate-100 mt-1">1,000,000 円</div>
-                    <div id="kpiEquityMultiplier" class="text-[10px] text-emerald-400 font-semibold mt-0.5">(+0.0%／1.00倍)</div>
-                </div>
-                <!-- 損益カード (獲得Rを追加) -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-blue-500">
-                    <div class="text-[11px] text-slate-400">損益</div>
-                    <div id="kpiPnl" class="text-sm font-bold text-slate-100 mt-1">+0 円</div>
-                    <div id="kpiTotalR" class="text-[10px] text-blue-400 font-semibold mt-0.5">獲得R: +0.00 R</div>
-                </div>
-                <!-- 実績勝率カード -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-emerald-500">
-                    <div class="text-[11px] text-slate-400">実績勝率</div>
-                    <div id="kpiWinRate" class="text-sm font-bold text-slate-100 mt-1">0.0%</div>
-                    <div id="kpiWinLossCount" class="text-[10px] text-slate-300 font-semibold mt-0.5">(0勝 0敗)</div>
-                    <div id="kpiTheoreticalWinRate" class="text-[10px] text-slate-400">理論値勝率: 60.0%</div>
-                </div>
-                <!-- 実績PFカード -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-amber-500">
-                    <div class="text-[11px] text-slate-400">実績PF</div>
-                    <div id="kpiPF" class="text-sm font-bold text-slate-100 mt-1">0.00</div>
-                    <div id="kpiTheoreticalPF" class="text-[10px] text-slate-400">理論値PF: 1.50</div>
-                </div>
-                <!-- 最大DDカード -->
-                <div class="glass-panel p-3.5 rounded-xl border-l-4 border-l-rose-500 col-span-2 sm:col-span-1">
-                    <div class="text-[11px] text-slate-400">最大DD</div>
-                    <div id="kpiMaxDD" class="text-sm font-bold text-rose-400 mt-1">0.0%</div>
-                    <div id="kpiMaxDDAmount" class="text-[10px] text-rose-400 font-semibold hidden">0 円</div>
-                    <div id="kpiDDPeriod" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大DD期間0回</div>
-                    <div id="kpiStreak" class="text-[10px] text-slate-300 font-semibold mt-0.5">最大連勝0／連敗0</div>
-                </div>
-            </div>
-
-            <!-- 1-Trade Detail Log Table (Single Simulation) -->
-            <div id="singleLogPanel" class="glass-panel p-6 rounded-2xl space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
-                    <h3 class="text-sm font-semibold text-slate-300 flex items-center space-x-2">
-                        <span>📝 1トレード毎の決済・資金ログ</span>
-                        <span id="logCountBadge" class="text-[10px] px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">0件</span>
-                    </h3>
-                    <div class="flex items-center space-x-2">
-                        <button id="btnToggleLogOrder" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded border border-slate-700 transition">
-                            降順 (新しい順)
-                        </button>
-                    </div>
-                </div>
-
-                <div class="max-h-80 overflow-y-auto pr-1">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-800/90 sticky top-0 uppercase text-slate-400 border-b border-slate-700">
-                            <tr>
-                                <th class="p-2.5">トレード#</th>
-                                <th class="p-2.5">勝敗結果</th>
-                                <th class="p-2.5">決済損益</th>
-                                <th class="p-2.5">トレード後残高</th>
-                                <th class="p-2.5">その時点のDD</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tradeLogTableBody" class="divide-y divide-slate-800/50">
-                            <tr>
-                                <td colspan="5" class="p-6 text-center text-slate-500">
-                                    「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="flex flex-col items-center">
+                <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">更新日時</label>
+                <div class="w-full h-12 blue-border-box rounded-xl flex items-center justify-center font-medium text-xs sm:text-sm px-1 text-center" id="updatedTimeDisplay">
+                    ----/--/-- --:--:--
                 </div>
             </div>
         </div>
-    </main>
 
-    <!-- Footer with X (Twitter) Account -->
-    <footer class="max-w-7xl mx-auto px-4 mt-12 text-center text-sm text-slate-400 border-t border-slate-800/80 pt-6">
-        <p><a href="https://x.com/nao__fx" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline font-bold text-base">@nao__fx</a></p>
-    </footer>
+        <!-- Currency Pair Dropdown Selector -->
+        <div class="w-full my-2 flex flex-col items-center">
+            <label class="text-xs sm:text-sm font-bold mb-1.5 text-sky-700">通貨ペア選択</label>
+            <div class="relative w-full">
+                <select id="currencySelect" class="w-full h-12 blue-box rounded-xl px-4 text-center font-extrabold text-xl appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-sky-400 transition">
+                    <option value="USD/JPY" class="bg-white text-sky-700 font-bold">USD/JPY</option>
+                    <option value="EUR/USD" class="bg-white text-sky-700 font-bold">EUR/USD</option>
+                    <option value="GBP/USD" class="bg-white text-sky-700 font-bold">GBP/USD</option>
+                    <option value="AUD/USD" class="bg-white text-sky-700 font-bold">AUD/USD</option>
+                </select>
+                <!-- Custom Dropdown Arrow -->
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-sky-700">
+                    <svg class="fill-current h-6 w-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display Section -->
+        <div class="w-full px-2 space-y-3 my-4">
+            <div class="flex justify-between items-center text-xl font-bold">
+                <div class="flex flex-col">
+                    <span class="text-sky-700">ロット数</span>
+                    <span class="text-[10px] text-rose-500 font-bold hidden leading-tight" id="lotCappedNotice">※最大レバ制限適用中</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="flex items-baseline gap-0.5 text-sky-600" id="lotContainer">
+                        <span class="text-3xl font-extrabold tracking-tight transition-colors duration-200" id="lotInteger">10</span>
+                        <span class="text-base font-bold transition-colors duration-200" id="lotDecimal">.00</span>
+                        <span class="text-base font-semibold ml-1">lot</span>
+                    </div>
+                    <span class="text-xs font-semibold text-sky-600/80 hidden mt-0.5" id="lotSplitNotice">(70.00lot × 2)</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center text-xl font-bold">
+                <span class="text-sky-700">レバレッジ</span>
+                <div class="flex flex-col items-end">
+                    <div class="flex items-baseline gap-1 text-sky-600" id="leverageContainer">
+                        <span class="text-2xl tracking-wider transition-colors duration-200" id="leverageResult">0.00</span>
+                        <span class="text-base font-semibold">倍</span>
+                    </div>
+                    <span class="text-xs text-rose-500 font-bold hidden" id="leverageWarning">⚠️ 最大レバに制限中</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center text-xl font-bold">
+                <span class="text-sky-700">損失</span>
+                <div class="flex items-baseline gap-1 text-sky-600">
+                    <span class="text-2xl tracking-wider transition-colors duration-200" id="lossResult">20,000</span>
+                    <span class="text-base font-semibold">円</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
+        <div class="bg-white border-2 border-sky-400 rounded-2xl p-6 max-w-sm w-full text-slate-800 space-y-4 shadow-2xl">
+            <h2 class="text-xl font-bold border-b border-sky-200 pb-2 text-sky-700">ロット計算について</h2>
+            <div class="text-sm leading-relaxed space-y-2 text-slate-600">
+                <p><strong>【計算仕様（1ロット = 10,000通貨）】</strong></p>
+                <p><strong>・損失許容額（円）:</strong><br> 証拠金 × (リスク% ÷ 100)</p>
+                <p><strong>・1pipあたりの価値（1ロット）:</strong><br>
+                - USD/JPY: 100円 (0.01 × 10,000)<br>
+                - XXX/USD: 1 USD × USD/JPYレート (0.0001 × 10,000 × 円換算レート)</p>
+                <p><strong>・ロット数算出:</strong><br> 許容損失額 ÷ (ストップ幅pips × 1pip価値)</p>
+            </div>
+            <button id="closeHelpBtn" class="w-full py-2.5 bg-sky-500 text-white font-bold rounded-xl mt-4 hover:bg-sky-600 transition">
+                閉じる
+            </button>
+        </div>
+    </div>
 
     <script>
-        // Global State Variables
-        let chart = null;
-        let singleSimulationResult = null;
-        let currentStep = 0;
-        let autoPlayTimer = null;
-        let isCompound = true;
-        let isLogAscending = false;
+        // DOM Elements
+        const stopLossInput = document.getElementById('stopLoss');
+        const riskPercentInput = document.getElementById('riskPercent');
+        const balanceInput = document.getElementById('accountBalance');
+        const maxLeverageInput = document.getElementById('maxLeverage');
+        const basePriceInput = document.getElementById('basePriceInput');
+        const refreshRateBtn = document.getElementById('refreshRateBtn');
+        const refreshIcon = document.getElementById('refreshIcon');
+        const updatedTimeDisplay = document.getElementById('updatedTimeDisplay');
+        const lotInteger = document.getElementById('lotInteger');
+        const lotDecimal = document.getElementById('lotDecimal');
+        const lotContainer = document.getElementById('lotContainer');
+        const lotSplitNotice = document.getElementById('lotSplitNotice');
+        const lotCappedNotice = document.getElementById('lotCappedNotice');
+        const leverageResult = document.getElementById('leverageResult');
+        const leverageWarning = document.getElementById('leverageWarning');
+        const lossResult = document.getElementById('lossResult');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const closeHelpBtn = document.getElementById('closeHelpBtn');
+        const currencySelect = document.getElementById('currencySelect');
 
-        const colors = [
-            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
-            '#06b6d4', '#f97316', '#84cc16', '#a855f7', '#64748b'
-        ];
+        let selectedPair = 'USD/JPY';
 
-        // UI Input References
-        const inputs = {
-            initialCapital: document.getElementById('initialCapital'),
-            riskPercent: document.getElementById('riskPercent'),
-            winRate: document.getElementById('winRate'),
-            rrr: document.getElementById('rrr'),
-            tradeCount: document.getElementById('tradeCount')
+        // Benchmark Real-time Base Rates
+        const baseMarketRates = {
+            'USD/JPY': 157.890,
+            'EUR/USD': 1.11250,
+            'GBP/USD': 1.32750,
+            'AUD/USD': 0.70280,
+            'usdjpy_rate': 157.890
         };
 
-        const displays = {
-            winRateVal: document.getElementById('winRateVal'),
-            rrrVal: document.getElementById('rrrVal'),
-            tradeCountVal: document.getElementById('tradeCountVal'),
-            theoryPF: document.getElementById('theoryPF')
-        };
+        // Current internal rate cache
+        const ratesCache = { ...baseMarketRates };
 
-        // カンマ区切りの数値を数値型へ変換するヘルパー関数
-        function parseCapitalValue() {
-            const valStr = inputs.initialCapital.value.replace(/,/g, '');
-            const num = parseFloat(valStr);
-            return isNaN(num) ? 0 : num;
+        function formatNumber(num) {
+            return Math.round(num).toLocaleString('en-US');
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            bindEvents();
-            updateControlDisplays();
+        function parseFormattedNumber(val) {
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/,/g, '')) || 0;
+        }
+
+        balanceInput.addEventListener('blur', () => {
+            const raw = parseFormattedNumber(balanceInput.value);
+            if (raw > 0) balanceInput.value = formatNumber(raw);
         });
 
-        function bindEvents() {
-            Object.keys(inputs).forEach(key => {
-                inputs[key].addEventListener('input', updateControlDisplays);
-            });
+        balanceInput.addEventListener('focus', () => {
+            const raw = parseFormattedNumber(balanceInput.value);
+            if (raw > 0) balanceInput.value = raw.toString();
+        });
 
-            // 初期資金のカンマ区切りリアルタイムフォーマット処理
-            inputs.initialCapital.addEventListener('blur', () => {
-                const num = parseCapitalValue();
-                inputs.initialCapital.value = Math.round(num).toLocaleString();
-            });
-
-            document.getElementById('btnModeCompound').addEventListener('click', () => setMode(true));
-            document.getElementById('btnModeSimple').addEventListener('click', () => setMode(false));
-
-            document.getElementById('btnRunSingle').addEventListener('click', runSingleSimulation);
-            document.getElementById('btnStep').addEventListener('click', stepForward);
-            document.getElementById('btnAutoPlay').addEventListener('click', toggleAutoPlay);
-            document.getElementById('btnReset').addEventListener('click', resetAll);
-            document.getElementById('btnToggleLogOrder').addEventListener('click', toggleLogOrder);
+        function getFormattedDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         }
 
-        function setMode(compound) {
-            isCompound = compound;
-            const btnC = document.getElementById('btnModeCompound');
-            const btnS = document.getElementById('btnModeSimple');
+        // Real-time Live Market API Fetch
+        async function fetchCurrencyRate(pair) {
+            if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
-            if (isCompound) {
-                btnC.className = 'py-1.5 rounded-md font-semibold bg-blue-600 text-white transition';
-                btnS.className = 'py-1.5 rounded-md font-semibold text-slate-400 hover:text-slate-200 transition';
-            } else {
-                btnS.className = 'py-1.5 rounded-md font-semibold bg-blue-600 text-white transition';
-                btnC.className = 'py-1.5 rounded-md font-semibold text-slate-400 hover:text-slate-200 transition';
-            }
-        }
+            let fetchedPrice = null;
+            let usdjpyRateFetched = null;
 
-        function calculateTheoreticalPF(winRatePct, rrr) {
-            const w = winRatePct / 100;
-            if (w >= 1) return 999.0;
-            if (w <= 0) return 0.0;
-            return (w * rrr) / (1 - w);
-        }
-
-        function updateControlDisplays() {
-            const winRate = parseFloat(inputs.winRate.value);
-            const rrr = parseFloat(inputs.rrr.value);
-            const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
-
-            displays.winRateVal.innerText = `${winRate.toFixed(1)}%`;
-            displays.rrrVal.innerText = rrr.toFixed(2);
-            displays.tradeCountVal.innerText = inputs.tradeCount.value;
-
-            const tPF = calculateTheoreticalPF(winRate, rrr);
-            displays.theoryPF.innerText = tPF.toFixed(2);
-            document.getElementById('kpiTheoreticalPF').innerText = `理論値PF: ${tPF.toFixed(2)}`;
-
-            const w = winRate / 100;
-            const l = 1 - w;
-            const expectancyR = (w * rrr) - l;
-            const expectancyPct = expectancyR * riskPct;
-            
-            const expEl = document.getElementById('theoryExpectancy');
-            expEl.innerText = `${expectancyPct >= 0 ? '+' : ''}${expectancyPct.toFixed(2)}%`;
-            expEl.className = `font-bold ${expectancyPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-            const expREl = document.getElementById('theoryExpectancyR');
-            expREl.innerText = `${expectancyR >= 0 ? '+' : ''}${expectancyR.toFixed(2)} R`;
-            expREl.className = `font-bold ${expectancyR >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-            document.getElementById('kpiTheoreticalWinRate').innerText = `理論値勝率: ${winRate.toFixed(1)}%`;
-            if (!singleSimulationResult || currentStep === 0) {
-                document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
-            } else {
-                updateProgressKPIs(currentStep);
-            }
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('equityChart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: [], datasets: [] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    interaction: { mode: 'nearest', intersect: false },
-                    scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } },
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        function generateTradePath(capital, riskPct, winRatePct, rrr, count, compound) {
-            let equity = capital;
-            const path = [equity];
-            const logs = [];
-            let wins = 0;
-            let totalWinAmount = 0;
-            let totalLossAmount = 0;
-            let peak = equity;
-            let peakIndex = 0;
-            let maxDD = 0;
-            let maxDDAmount = 0;
-            let maxDDStartIndex = 0;
-            let maxDDEndIndex = 0;
-            let maxDDPeakValue = equity;
-            let totalR = 0;
-
-            let curWinStreak = 0, maxWinStreak = 0;
-            let curLossStreak = 0, maxLossStreak = 0;
-
-            const fixedRiskAmt = capital * (riskPct / 100);
-
-            for (let i = 0; i < count; i++) {
-                const riskAmount = compound ? (equity * (riskPct / 100)) : fixedRiskAmt;
-                const isWin = Math.random() < (winRatePct / 100);
-                let pnlAmount = 0;
-                let tradeR = 0;
-
-                if (isWin) {
-                    pnlAmount = riskAmount * rrr;
-                    equity += pnlAmount;
-                    wins++;
-                    totalWinAmount += pnlAmount;
-                    tradeR = rrr;
-
-                    curWinStreak++;
-                    curLossStreak = 0;
-                    if (curWinStreak > maxWinStreak) maxWinStreak = curWinStreak;
-                } else {
-                    pnlAmount = -riskAmount;
-                    equity -= riskAmount;
-                    totalLossAmount += riskAmount;
-                    tradeR = -1;
-
-                    curLossStreak++;
-                    curWinStreak = 0;
-                    if (curLossStreak > maxLossStreak) maxLossStreak = curLossStreak;
-                }
-
-                totalR += tradeR;
-
-                if (equity > peak) {
-                    peak = equity;
-                    peakIndex = i + 1;
-                }
-
-                if (equity < 0) equity = 0;
-
-                path.push(equity);
-
-                const currentDDVal = peak - equity;
-                const currentDD = peak > 0 ? currentDDVal / peak : 0;
-                if (currentDD > maxDD) {
-                    maxDD = currentDD;
-                    maxDDAmount = currentDDVal;
-                    maxDDStartIndex = peakIndex;
-                    maxDDEndIndex = i + 1;
-                    maxDDPeakValue = peak;
-                }
-
-                logs.push({
-                    tradeIndex: i + 1,
-                    isWin,
-                    riskAmount,
-                    pnlAmount,
-                    tradeR,
-                    equityAfter: equity,
-                    currentDD
-                });
-            }
-
-            if (maxDDStartIndex > 0) {
-                let recoveryIndex = maxDDEndIndex;
-                let recovered = false;
-                for (let j = maxDDEndIndex; j < path.length; j++) {
-                    if (path[j] >= maxDDPeakValue) {
-                        recoveryIndex = j;
-                        recovered = true;
-                        break;
-                    }
-                }
-                if (!recovered) {
-                    recoveryIndex = path.length - 1;
-                }
-            }
-
-            const totalExecuted = logs.length;
-            const winRate = totalExecuted > 0 ? (wins / totalExecuted) * 100 : 0;
-            const pf = totalLossAmount > 0 ? (totalWinAmount / totalLossAmount) : (totalWinAmount > 0 ? 999 : 0);
-
-            return {
-                path,
-                logs,
-                wins,
-                losses: totalExecuted - wins,
-                totalExecuted,
-                winRate,
-                pf,
-                maxDD,
-                maxDDAmount,
-                maxDDStartIndex,
-                maxDDEndIndex,
-                maxDDPeakValue,
-                maxWinStreak,
-                maxLossStreak,
-                totalR,
-                finalEquity: equity
-            };
-        }
-
-        function runSingleSimulation() {
-            stopAutoPlay();
-
-            const capital = parseCapitalValue() || 1000000;
-            const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
-            const winRate = parseFloat(inputs.winRate.value);
-            const rrr = parseFloat(inputs.rrr.value);
-            const count = parseInt(inputs.tradeCount.value);
-
-            singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, isCompound);
-            currentStep = singleSimulationResult.totalExecuted;
-
-            const currentSubLogs = singleSimulationResult.logs.slice(0, currentStep);
-            const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
-
-            renderSingleChart(singleSimulationResult.path.slice(0, currentStep + 1), capital, subDDInfo.maxDDStartIndex, subDDInfo.maxDDRecoveryIndex);
-            updateProgressKPIs(currentStep);
-            renderTradeLogTable(singleSimulationResult.logs);
-        }
-
-        function renderSingleChart(path, capital, maxDDStart = 0, recoveryIndex = 0) {
-            chart.data.labels = path.map((_, i) => i);
-
-            const datasets = [
-                {
-                    label: '残高',
-                    data: path,
-                    borderColor: '#3b82f6',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    fill: false,
-                    segment: {
-                        borderColor: ctx => {
-                            if (maxDDStart > 0 && ctx.p1DataIndex > maxDDStart && ctx.p1DataIndex <= recoveryIndex) {
-                                return '#f43f5e';
-                            }
-                            return '#3b82f6';
+            // Fetch live currency rates from primary & fallback endpoints
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.rates) {
+                        const rates = data.rates;
+                        usdjpyRateFetched = rates['JPY'];
+                        
+                        if (pair === 'USD/JPY') {
+                            fetchedPrice = rates['JPY'];
+                        } else if (pair === 'EUR/USD') {
+                            fetchedPrice = rates['USD'] / rates['EUR'];
+                        } else if (pair === 'GBP/USD') {
+                            fetchedPrice = rates['USD'] / rates['GBP'];
+                        } else if (pair === 'AUD/USD') {
+                            fetchedPrice = rates['USD'] / rates['AUD'];
                         }
                     }
-                },
-                {
-                    label: '初期資金',
-                    data: Array(path.length).fill(capital),
-                    borderColor: '#facc15',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 0,
-                    fill: false
                 }
-            ];
-
-            chart.data.datasets = datasets;
-            chart.update();
-        }
-
-        function stepForward() {
-            const capital = parseCapitalValue() || 1000000;
-            const riskPct = parseFloat(inputs.riskPercent.value) || 2.0;
-            const winRate = parseFloat(inputs.winRate.value);
-            const rrr = parseFloat(inputs.rrr.value);
-            const count = parseInt(inputs.tradeCount.value);
-
-            if (!singleSimulationResult || singleSimulationResult.path.length - 1 !== count || currentStep >= count) {
-                singleSimulationResult = generateTradePath(capital, riskPct, winRate, rrr, count, isCompound);
-                currentStep = 0;
+            } catch (e) {
+                console.warn("Primary API failed, trying fallback source", e);
             }
 
-            if (currentStep < count) {
-                currentStep++;
+            // Fallback API endpoint
+            if (!fetchedPrice) {
+                try {
+                    const baseCurrency = pair.split('/')[0];
+                    const quoteCurrency = pair.split('/')[1];
+                    const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.rates && data.rates[quoteCurrency]) {
+                            fetchedPrice = data.rates[quoteCurrency];
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Fallback API failed", e);
+                }
             }
 
-            const currentSubLogs = singleSimulationResult.logs.slice(0, currentStep);
-            const subDDInfo = calculateCurrentMaxDD(currentSubLogs, capital);
-            const slicedPath = singleSimulationResult.path.slice(0, currentStep + 1);
+            if (fetchedPrice) {
+                ratesCache[pair] = fetchedPrice;
+                if (usdjpyRateFetched) ratesCache['usdjpy_rate'] = usdjpyRateFetched;
 
-            renderSingleChart(slicedPath, capital, subDDInfo.maxDDStartIndex, subDDInfo.maxDDRecoveryIndex);
-            updateProgressKPIs(currentStep);
-            renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
+                const decimals = pair === 'USD/JPY' ? 3 : 5;
+                basePriceInput.value = fetchedPrice.toFixed(decimals);
+                updatedTimeDisplay.textContent = getFormattedDateTime();
+            }
+
+            if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+
+            calculateLot();
         }
 
-        function toggleAutoPlay() {
-            const btn = document.getElementById('btnAutoPlay');
-            if (autoPlayTimer) {
-                stopAutoPlay();
+        function calculateLot() {
+            const pips = parseFloat(stopLossInput.value) || 0;
+            const riskPct = parseFloat(riskPercentInput.value) || 0;
+            const balance = parseFormattedNumber(balanceInput.value);
+            const maxLev = parseFloat(maxLeverageInput.value) || 0;
+            const currentPrice = parseFloat(basePriceInput.value) || ratesCache[selectedPair] || 1.0;
+
+            if (pips <= 0 || riskPct <= 0 || balance <= 0 || currentPrice <= 0) {
+                lotInteger.textContent = "0";
+                lotDecimal.textContent = ".00";
+                leverageResult.textContent = "0.00";
+                lossResult.textContent = "0";
+                leverageContainer.className = "flex items-baseline gap-1 text-sky-600";
+                lotContainer.className = "flex items-baseline gap-0.5 text-sky-600";
+                leverageWarning.classList.add('hidden');
+                if (lotCappedNotice) lotCappedNotice.classList.add('hidden');
+                if (lotSplitNotice) lotSplitNotice.classList.add('hidden');
+                return;
+            }
+
+            ratesCache[selectedPair] = currentPrice;
+            const usdjpyRate = selectedPair === 'USD/JPY' ? currentPrice : (ratesCache['usdjpy_rate'] || baseMarketRates['usdjpy_rate']);
+
+            let pipValuePerLotInJPY = 100; 
+            let notionalValuePerLotInJPY = 10000 * currentPrice; 
+
+            if (selectedPair === 'USD/JPY') {
+                pipValuePerLotInJPY = 100;
+                notionalValuePerLotInJPY = 10000 * currentPrice;
             } else {
-                btn.innerText = '⏸ 一時停止';
-                btn.classList.add('bg-amber-600', 'border-amber-500');
-                btn.classList.remove('bg-slate-800');
+                pipValuePerLotInJPY = 1 * usdjpyRate;
+                notionalValuePerLotInJPY = 10000 * currentPrice * usdjpyRate;
+            }
 
-                const count = parseInt(inputs.tradeCount.value);
-                if (!singleSimulationResult || currentStep >= count) {
-                    stepForward();
-                }
+            const riskAmountJPY = balance * (riskPct / 100);
+            let rawLot = riskAmountJPY / (pips * pipValuePerLotInJPY);
 
-                autoPlayTimer = setInterval(() => {
-                    if (currentStep < count) {
-                        stepForward();
-                    } else {
-                        stopAutoPlay();
-                    }
-                }, 50);
+            let maxAllowedLot = Infinity;
+            if (maxLev > 0) {
+                maxAllowedLot = (balance * maxLev) / notionalValuePerLotInJPY;
+            }
+
+            let isCapped = false;
+            let finalLot = rawLot;
+
+            if (rawLot > maxAllowedLot) {
+                finalLot = maxAllowedLot;
+                isCapped = true;
+            }
+
+            const finalNotionalJPY = finalLot * notionalValuePerLotInJPY;
+            const finalLeverage = finalNotionalJPY / balance;
+            const actualLossJPY = finalLot * pips * pipValuePerLotInJPY;
+
+            const lotFormatted = finalLot.toFixed(2);
+            const lotParts = lotFormatted.split('.');
+            lotInteger.textContent = lotParts[0];
+            lotDecimal.textContent = '.' + (lotParts[1] || '00');
+
+            leverageResult.textContent = finalLeverage.toFixed(2);
+            lossResult.textContent = formatNumber(actualLossJPY);
+
+            // Split lot display for >= 100 lot
+            if (finalLot >= 100) {
+                const ordersCount = Math.ceil(finalLot / 100);
+                const perOrderLot = (finalLot / ordersCount).toFixed(2);
+                lotSplitNotice.textContent = `(${perOrderLot}lot × ${ordersCount})`;
+                lotSplitNotice.classList.remove('hidden');
+            } else {
+                lotSplitNotice.classList.add('hidden');
+            }
+
+            if (isCapped) {
+                leverageContainer.className = "flex items-baseline gap-1 text-rose-500";
+                lotContainer.className = "flex items-baseline gap-0.5 text-rose-500";
+                leverageWarning.classList.remove('hidden');
+                if (lotCappedNotice) lotCappedNotice.classList.remove('hidden');
+            } else {
+                leverageContainer.className = "flex items-baseline gap-1 text-sky-600";
+                lotContainer.className = "flex items-baseline gap-0.5 text-sky-600";
+                leverageWarning.classList.add('hidden');
+                if (lotCappedNotice) lotCappedNotice.classList.add('hidden');
             }
         }
 
-        function stopAutoPlay() {
-            if (autoPlayTimer) {
-                clearInterval(autoPlayTimer);
-                autoPlayTimer = null;
-            }
-            const btn = document.getElementById('btnAutoPlay');
-            if (btn) {
-                btn.innerText = '⏯ 自動再生';
-                btn.classList.remove('bg-amber-600', 'border-amber-500');
-                btn.classList.add('bg-slate-800');
-            }
-        }
+        // Event Listeners
+        currencySelect.addEventListener('change', (e) => {
+            selectedPair = e.target.value;
+            fetchCurrencyRate(selectedPair, true);
+        });
 
-        function updateProgressKPIs(step) {
-            const count = parseInt(inputs.tradeCount.value);
-            document.getElementById('tradeProgressText').innerText = `${step} / ${count} トレード`;
+        stopLossInput.addEventListener('input', calculateLot);
+        riskPercentInput.addEventListener('input', calculateLot);
+        balanceInput.addEventListener('input', calculateLot);
+        maxLeverageInput.addEventListener('input', calculateLot);
+        basePriceInput.addEventListener('input', calculateLot);
+        
+        refreshRateBtn.addEventListener('click', () => {
+            fetchCurrencyRate(selectedPair, true);
+        });
 
-            if (!singleSimulationResult || step === 0) {
-                const capital = parseCapitalValue() || 1000000;
-                document.getElementById('kpiCurrentEquity').innerText = `${Math.round(capital).toLocaleString()} 円`;
-                document.getElementById('kpiEquityMultiplier').innerText = `(+0.0%／1.00倍)`;
-                document.getElementById('kpiPnl').innerText = `+0 円`;
-                document.getElementById('kpiTotalR').innerText = `獲得R: +0.00 R`;
-                document.getElementById('kpiWinRate').innerText = `0.0%`;
-                document.getElementById('kpiWinLossCount').innerText = `(0勝 0敗)`;
-                document.getElementById('kpiPF').innerText = `0.00`;
-                document.getElementById('kpiMaxDD').innerText = `0.0%`;
-                document.getElementById('kpiMaxDDAmount').innerText = `0 円`;
-                document.getElementById('kpiDDPeriod').innerText = `最大DD期間0回`;
-                document.getElementById('kpiStreak').innerText = `最大連勝0／連敗0`;
-                return;
-            }
+        helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+        closeHelpBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) helpModal.classList.add('hidden');
+        });
 
-            const capital = parseCapitalValue() || 1000000;
-            const currentEquity = singleSimulationResult.path[step];
-            const pnl = currentEquity - capital;
-            const roiPct = (pnl / capital) * 100;
-            const mult = currentEquity / capital;
-
-            document.getElementById('kpiCurrentEquity').innerText = `${Math.round(currentEquity).toLocaleString()} 円`;
-            const multEl = document.getElementById('kpiEquityMultiplier');
-            multEl.innerText = `(${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(1)}%／${mult.toFixed(2)}倍)`;
-            multEl.className = `text-[10px] font-semibold mt-0.5 ${roiPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-            const pnlEl = document.getElementById('kpiPnl');
-            pnlEl.innerText = `${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()} 円`;
-            pnlEl.className = `text-sm font-bold mt-1 ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-            const currentLogs = singleSimulationResult.logs.slice(0, step);
-            let wins = 0;
-            let winAmt = 0;
-            let lossAmt = 0;
-            let cumulativeR = 0;
-            let peak = capital;
-            let peakIndex = 0;
-            let maxDD = 0;
-            let maxDDAmt = 0;
-            let maxDDStartIdx = 0;
-            let maxDDEndIdx = 0;
-            let maxDDPeakVal = capital;
-
-            let curW = 0, maxW = 0;
-            let curL = 0, maxL = 0;
-
-            currentLogs.forEach((log, idx) => {
-                const tradeIdx = idx + 1;
-                cumulativeR += log.tradeR;
-                if (log.isWin) {
-                    wins++;
-                    winAmt += log.pnlAmount;
-                    curW++; curL = 0;
-                    if (curW > maxW) maxW = curW;
-                } else {
-                    lossAmt += log.riskAmount;
-                    curL++; curW = 0;
-                    if (curL > maxL) maxL = curL;
-                }
-
-                if (log.equityAfter > peak) {
-                    peak = log.equityAfter;
-                    peakIndex = tradeIdx;
-                }
-                const ddVal = peak - log.equityAfter;
-                const ddPct = peak > 0 ? ddVal / peak : 0;
-                if (ddPct > maxDD) {
-                    maxDD = ddPct;
-                    maxDDAmt = ddVal;
-                    maxDDStartIdx = peakIndex;
-                    maxDDEndIdx = tradeIdx;
-                    maxDDPeakVal = peak;
-                }
-            });
-
-            const totalREl = document.getElementById('kpiTotalR');
-            totalREl.innerText = `獲得R: ${cumulativeR >= 0 ? '+' : ''}${cumulativeR.toFixed(2)} R`;
-            totalREl.className = `text-[10px] font-semibold mt-0.5 ${cumulativeR >= 0 ? 'text-blue-400' : 'text-rose-400'}`;
-
-            let currentFullPeriod = 0;
-            if (maxDDStartIdx > 0) {
-                let recoveryIndex = maxDDEndIdx;
-                let recovered = false;
-                const currentPathSlice = [capital, ...currentLogs.map(l => l.equityAfter)];
-                for (let j = maxDDEndIdx; j < currentPathSlice.length; j++) {
-                    if (currentPathSlice[j] >= maxDDPeakVal) {
-                        recoveryIndex = j;
-                        recovered = true;
-                        break;
-                    }
-                }
-                if (!recovered) {
-                    recoveryIndex = currentPathSlice.length - 1;
-                }
-                currentFullPeriod = Math.max(0, (recoveryIndex - maxDDStartIdx + 1) - 2);
-            }
-
-            const winRatePct = (wins / step) * 100;
-            const pf = lossAmt > 0 ? (winAmt / lossAmt) : (winAmt > 0 ? 999 : 0);
-
-            document.getElementById('kpiWinRate').innerText = `${winRatePct.toFixed(1)}%`;
-            document.getElementById('kpiWinLossCount').innerText = `(${wins}勝 ${step - wins}敗)`;
-            document.getElementById('kpiPF').innerText = pf >= 999 ? '∞' : pf.toFixed(2);
-            document.getElementById('kpiStreak').innerText = `最大連勝${maxW}／連敗${maxL}`;
-            document.getElementById('kpiMaxDD').innerText = `${(maxDD * 100).toFixed(1)}%`;
-            document.getElementById('kpiMaxDDAmount').innerText = `${Math.round(maxDDAmt).toLocaleString()} 円`;
-            document.getElementById('kpiDDPeriod').innerText = `最大DD期間${currentFullPeriod}回`;
-        }
-
-        function calculateCurrentMaxDD(currentLogs, capital) {
-            let peak = capital;
-            let peakIndex = 0;
-            let maxDD = 0;
-            let maxDDStartIndex = 0;
-            let maxDDEndIndex = 0;
-            let maxDDPeakValue = capital;
-
-            currentLogs.forEach((log, idx) => {
-                const tradeIdx = idx + 1;
-                if (log.equityAfter > peak) {
-                    peak = log.equityAfter;
-                    peakIndex = tradeIdx;
-                }
-                const ddVal = peak - log.equityAfter;
-                const ddPct = peak > 0 ? ddVal / peak : 0;
-                if (ddPct > maxDD) {
-                    maxDD = ddPct;
-                    maxDDStartIndex = peakIndex;
-                    maxDDEndIndex = tradeIdx;
-                    maxDDPeakValue = peak;
-                }
-            });
-
-            // Calculate recovery index where equity >= maxDDPeakValue, shifted 1 trade earlier (so it returns to blue 1 step sooner)
-            let maxDDRecoveryIndex = maxDDEndIndex;
-            if (maxDDStartIndex > 0) {
-                let recovered = false;
-                const currentPathSlice = [capital, ...currentLogs.map(l => l.equityAfter)];
-                for (let j = maxDDEndIndex; j < currentPathSlice.length; j++) {
-                    if (currentPathSlice[j] >= maxDDPeakValue) {
-                        maxDDRecoveryIndex = j - 1; // 1トレード早く青に戻るように調整
-                        recovered = true;
-                        break;
-                    }
-                }
-                if (!recovered) {
-                    maxDDRecoveryIndex = currentPathSlice.length - 1;
-                }
-            }
-
-            return { maxDDStartIndex, maxDDRecoveryIndex };
-        }
-
-        function renderTradeLogTable(logs) {
-            const tbody = document.getElementById('tradeLogTableBody');
-            document.getElementById('logCountBadge').innerText = `${logs.length}件`;
-
-            if (logs.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="p-6 text-center text-slate-500">
-                            「シミュレーション実行」または「1トレード送り」を押すと結果が表示されます。
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            const displayLogs = isLogAscending ? [...logs] : [...logs].reverse();
-
-            tbody.innerHTML = displayLogs.map(log => {
-                const winClass = log.isWin ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-rose-400 bg-rose-500/10 border-rose-500/30';
-                const winText = log.isWin ? 'WIN' : 'LOSE';
-                const pnlSign = log.pnlAmount > 0 ? '+' : '';
-                const pnlClass = log.pnlAmount >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
-
-                return `
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-2.5 font-mono text-slate-400">#${log.tradeIndex}</td>
-                        <td class="p-2.5">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${winClass}">${winText}</span>
-                        </td>
-                        <td class="p-2.5 ${pnlClass}">${pnlSign}${Math.round(log.pnlAmount).toLocaleString()} 円</td>
-                        <td class="p-2.5 text-slate-200 font-medium">${Math.round(log.equityAfter).toLocaleString()} 円</td>
-                        <td class="p-2.5 text-rose-400 font-mono">${(log.currentDD * 100).toFixed(1)}%</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function toggleLogOrder() {
-            isLogAscending = !isLogAscending;
-            const btn = document.getElementById('btnToggleLogOrder');
-            btn.innerText = isLogAscending ? '昇順 (古い順)' : '降順 (新しい順)';
-            if (singleSimulationResult && currentStep > 0) {
-                renderTradeLogTable(singleSimulationResult.logs.slice(0, currentStep));
-            }
-        }
-
-        function resetAll() {
-            stopAutoPlay();
-            singleSimulationResult = null;
-            currentStep = 0;
-
-            inputs.initialCapital.value = "1,000,000";
-            inputs.riskPercent.value = "2.0";
-            inputs.winRate.value = "60";
-            inputs.rrr.value = "1.00";
-            inputs.tradeCount.value = "500";
-
-            setMode(true);
-            updateControlDisplays();
-
-            chart.data.labels = [];
-            chart.data.datasets = [];
-            chart.update();
-
-            updateProgressKPIs(0);
-            renderTradeLogTable([]);
-        }
+        // Initial Initialization on Load
+        window.addEventListener('load', () => {
+            fetchCurrencyRate(currencySelect.value);
+        });
     </script>
 </body>
 </html>
