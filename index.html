@@ -299,6 +299,16 @@
             if (raw > 0) balanceInput.value = raw.toString();
         });
 
+        function showSaveStatus() {
+            const saveStatus = document.getElementById('saveStatus');
+            if (saveStatus) {
+                saveStatus.classList.remove('opacity-0');
+                setTimeout(() => {
+                    saveStatus.classList.add('opacity-0');
+                }, 1000);
+            }
+        }
+
         function getFormattedDateTime() {
             const now = new Date();
             const year = now.getFullYear();
@@ -311,7 +321,7 @@
         }
 
         // Real-time Live Market API Fetch
-        async function fetchCurrencyRate(pair) {
+        async function fetchCurrencyRate(pair, isInitialLoad = false) {
             if (loadingSpinner) loadingSpinner.classList.remove('hidden');
             if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
@@ -364,7 +374,10 @@
                 if (usdjpyRateFetched) ratesCache['usdjpy_rate'] = usdjpyRateFetched;
 
                 const decimals = pair === 'USD/JPY' ? 3 : 5;
-                basePriceInput.value = fetchedPrice.toFixed(decimals);
+                // 初回読み込み時は手動変更値を尊重しつつ、空の場合のみレートを適用
+                if (!isInitialLoad || !basePriceInput.value) {
+                    basePriceInput.value = fetchedPrice.toFixed(decimals);
+                }
                 updatedTimeDisplay.textContent = getFormattedDateTime();
             }
 
@@ -459,24 +472,28 @@
             }
         }
 
-        // Event Listeners
+        // Event Listeners for Live Calculation & Immediate Auto-save
         currencySelect.addEventListener('change', (e) => {
             selectedPair = e.target.value;
             saveSettings();
+            showSaveStatus();
             fetchCurrencyRate(selectedPair);
         });
 
         const handleInput = () => {
             calculateLot();
             saveSettings();
+            showSaveStatus();
         };
 
-        stopLossInput.addEventListener('input', handleInput);
-        riskPercentInput.addEventListener('input', handleInput);
-        balanceInput.addEventListener('input', handleInput);
-        maxLeverageInput.addEventListener('input', handleInput);
-        basePriceInput.addEventListener('input', calculateLot);
-        
+        ['input', 'change', 'blur'].forEach(eventType => {
+            stopLossInput.addEventListener(eventType, handleInput);
+            riskPercentInput.addEventListener(eventType, handleInput);
+            balanceInput.addEventListener(eventType, handleInput);
+            maxLeverageInput.addEventListener(eventType, handleInput);
+            basePriceInput.addEventListener(eventType, handleInput);
+        });
+
         refreshRateBtn.addEventListener('click', () => {
             fetchCurrencyRate(selectedPair);
         });
@@ -490,7 +507,7 @@
         // Initial Initialization on Load
         window.addEventListener('load', () => {
             loadSettings();
-            fetchCurrencyRate(currencySelect.value);
+            fetchCurrencyRate(currencySelect.value, true);
         });
     </script>
 </body>
